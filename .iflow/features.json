@@ -113,8 +113,8 @@
         "可以删除好友",
         "好友列表正确显示"
       ],
-      "status": "in_progress",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-09T01:00:00Z"
     },
     {
       "id": "F007",
@@ -228,9 +228,9 @@
   ],
   "statistics": {
     "total": 12,
-    "completed": 5,
+    "completed": 6,
     "inProgress": 0,
-    "pending": 7,
+    "pending": 6,
     "byPriority": {
       "high": 6,
       "medium": 4,
