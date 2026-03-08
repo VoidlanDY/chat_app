@@ -7,7 +7,7 @@
 ## 当前状态
 - 阶段: 功能开发中
 - 最后更新: 2026-03-08
-- 完成功能: 2 / 12
+- 完成功能: 3 / 12
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -74,3 +74,21 @@
   - `server/src/main.cpp` - 设置服务器的 managers
   - `client/chat_app/lib/services/chat_service.dart` - 改进注册处理
   - `client/chat_app/lib/screens/register_screen.dart` - 改进注册 UI 逻辑
+
+## [2026-03-08] 完成功能 #F003 - 用户登录功能
+- 实现内容:
+  - 验证服务器端登录逻辑 (user_manager.cpp, session.cpp)
+  - 改进客户端登录等待机制
+  - 添加登录状态跟踪 (loginSuccess, loginError)
+  - login 方法改为返回 Future<bool>
+  - 改进 LoginScreen 等待登录结果
+- 测试结果: 通过
+  - 正确凭据登录: 成功返回 user_id 和 user_info
+  - 错误密码登录: 正确拒绝 (Invalid password)
+  - 不存在用户登录: 正确拒绝 (User not found)
+  - 用户在线状态更新: 登录后状态设为 ONLINE
+- 相关文件:
+  - `server/src/session.cpp` - 登录消息处理
+  - `server/src/user_manager.cpp` - 登录验证逻辑
+  - `client/chat_app/lib/services/chat_service.dart` - 登录状态跟踪
+  - `client/chat_app/lib/screens/login_screen.dart` - 登录界面改进
