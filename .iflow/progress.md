@@ -7,7 +7,7 @@
 ## 当前状态
 - 阶段: 功能开发中
 - 最后更新: 2026-03-08
-- 完成功能: 3 / 12
+- 完成功能: 4 / 12
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -92,3 +92,22 @@
   - `server/src/user_manager.cpp` - 登录验证逻辑
   - `client/chat_app/lib/services/chat_service.dart` - 登录状态跟踪
   - `client/chat_app/lib/screens/login_screen.dart` - 登录界面改进
+
+## [2026-03-08] 完成功能 #F004 - 私聊消息功能
+- 实现内容:
+  - 添加 Server 引用到 Session 类
+  - 登录成功后调用 set_user_online 关联用户会话
+  - 启用私聊消息实时转发 (handle_private_message)
+  - 客户端添加 privateMessageResponse 处理
+  - 客户端添加 privateHistoryResponse 处理
+- 测试结果: 通过
+  - 消息发送: 成功返回 message_id 和确认
+  - 消息转发: 实时送达接收者 (在线用户)
+  - 消息存储: 正确保存到 private_messages 表
+  - 历史加载: 正确返回历史消息
+- 相关文件:
+  - `server/include/session.hpp` - 添加 server_ 成员和 set_server 方法
+  - `server/include/server.hpp` - 继承 enable_shared_from_this
+  - `server/src/session.cpp` - 启用消息转发，登录关联会话
+  - `server/src/server.cpp` - 设置 session 的 server 引用
+  - `client/chat_app/lib/services/chat_service.dart` - 响应处理

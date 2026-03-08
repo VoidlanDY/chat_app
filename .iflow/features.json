@@ -76,8 +76,8 @@
         "消息顺序正确",
         "消息状态正确显示"
       ],
-      "status": "pending",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-08T12:00:00Z"
     },
     {
       "id": "F005",
