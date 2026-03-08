@@ -38,8 +38,8 @@
         "密码使用 SHA256 加密存储",
         "重复用户名注册被正确拒绝"
       ],
-      "status": "pending",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-08T22:30:00Z"
     },
     {
       "id": "F003",
@@ -228,9 +228,9 @@
   ],
   "statistics": {
     "total": 12,
-    "completed": 1,
+    "completed": 2,
     "inProgress": 0,
-    "pending": 11,
+    "pending": 10,
     "byPriority": {
       "high": 6,
       "medium": 4,

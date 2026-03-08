@@ -5,9 +5,9 @@
 功能包括：私聊、群聊、好友系统、多媒体消息、MySQL数据存储
 
 ## 当前状态
-- 阶段: 初始化完成，代码框架已建立
+- 阶段: 功能开发中
 - 最后更新: 2026-03-08
-- 完成功能: 0 / 12
+- 完成功能: 2 / 12
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -51,3 +51,26 @@
 - 服务器: C++17, asio (异步网络), MySQL, OpenSSL
 - 客户端: Flutter 3.0+, Dart, Provider (状态管理)
 - 平台: Android (API 21+)
+
+## [2026-03-08] 完成功能 #F002 - 用户注册功能
+- 实现内容:
+  - 修复 Server 类缺少 managers 的段错误问题
+  - 添加 Server::set_managers() 方法设置管理器
+  - 在 session 启动前正确设置 managers
+  - 改进 ChatService 注册响应处理
+  - 添加注册状态跟踪 (成功/失败/错误消息)
+  - register 方法改为返回 Future<bool>
+  - 改进 RegisterScreen 等待注册结果
+- 测试结果: 通过
+  - 新用户注册: 成功返回 user_id
+  - 重复用户名检测: 正确拒绝
+  - 空用户名验证: 正确拒绝
+  - 密码 SHA256 哈希存储: 验证正确
+  - 登录验证: 成功返回用户信息
+  - 错误密码拒绝: 正确拒绝
+- 相关文件:
+  - `server/include/server.hpp` - 添加 managers 成员和 setter
+  - `server/src/server.cpp` - 实现 set_managers，修复 handle_accept
+  - `server/src/main.cpp` - 设置服务器的 managers
+  - `client/chat_app/lib/services/chat_service.dart` - 改进注册处理
+  - `client/chat_app/lib/screens/register_screen.dart` - 改进注册 UI 逻辑
