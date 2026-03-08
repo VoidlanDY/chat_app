@@ -4,6 +4,7 @@
 #include <memory>
 #include <array>
 #include <functional>
+#include <deque>
 #include <asio.hpp>
 #include "protocol.hpp"
 
@@ -90,7 +91,7 @@ private:
     std::vector<uint8_t> body_buffer_;
     std::vector<uint8_t> write_buffer_;
     
-    std::vector<std::vector<uint8_t>> write_queue_;
+    std::deque<std::vector<uint8_t>> write_queue_;
     std::mutex write_mutex_;
     
     uint64_t user_id_;

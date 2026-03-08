@@ -14,7 +14,7 @@ Server::Server(const Config& config)
     : config_(config)
     , io_context_()
     , acceptor_(io_context_, Endpoint(asio::ip::make_address(config.host), config.port))
-    , signals_(io_context, SIGINT, SIGTERM)
+    , signals_(io_context_, SIGINT, SIGTERM)
     , running_(false)
     , heartbeat_timer_(io_context_) {
 }

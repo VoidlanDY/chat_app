@@ -8,24 +8,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # 查找依赖
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
-find_package(mysqlclient REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MYSQL REQUIRED mysqlclient)
 
-# nlohmann_json - 使用 FetchContent
-include(FetchContent)
-FetchContent_Declare(
-    json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.2
-)
-FetchContent_MakeAvailable(json)
-
-# asio - 使用 FetchContent
-FetchContent_Declare(
-    asio
-    GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
-    GIT_TAG asio-1-28-0
-)
-FetchContent_MakeAvailable(asio)
+# 使用系统安装的 nlohmann-json 和 asio
+find_package(nlohmann_json 3.2.0 REQUIRED)
+find_path(ASIO_INCLUDE_DIR NAMES asio.hpp PATHS /usr/include)
 
 # 服务器可执行文件
 add_executable(chat_server
@@ -41,14 +29,15 @@ add_executable(chat_server
 
 target_include_directories(chat_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${asio_SOURCE_DIR}/asio/include
+    ${ASIO_INCLUDE_DIR}
+    ${MYSQL_INCLUDE_DIRS}
 )
 
 target_link_libraries(chat_server PRIVATE
     Threads::Threads
     OpenSSL::SSL
     OpenSSL::Crypto
-    mysqlclient
+    ${MYSQL_LIBRARIES}
     nlohmann_json::nlohmann_json
 )
 

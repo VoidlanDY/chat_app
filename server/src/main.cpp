@@ -21,8 +21,8 @@ int main(int argc, char* argv[]) {
     chat::Database::Config db_config;
     db_config.host = "localhost";
     db_config.port = 3306;
-    db_config.user = "root";
-    db_config.password = "your_password";
+    db_config.user = "chat_user";
+    db_config.password = "chat_password_2026";
     db_config.database = "chat_app";
     
     chat::Server::Config server_config;

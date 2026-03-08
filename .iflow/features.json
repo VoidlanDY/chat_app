@@ -19,8 +19,8 @@
         "所有表结构正确创建",
         "数据库操作无错误"
       ],
-      "status": "pending",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-08T21:45:00Z"
     },
     {
       "id": "F002",
@@ -228,9 +228,9 @@
   ],
   "statistics": {
     "total": 12,
-    "completed": 0,
+    "completed": 1,
     "inProgress": 0,
-    "pending": 12,
+    "pending": 11,
     "byPriority": {
       "high": 6,
       "medium": 4,

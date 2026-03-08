@@ -3,6 +3,8 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
+#include <sys/stat.h>
 
 namespace chat {
 
@@ -18,18 +20,23 @@ Database::~Database() {
 bool Database::init(const Config& config) {
     config_ = config;
     
+    std::cerr << "Initializing MySQL library..." << std::endl;
+    
     // 初始化 MySQL
     if (mysql_library_init(0, nullptr, nullptr) != 0) {
+        std::cerr << "mysql_library_init failed" << std::endl;
         return false;
     }
     
+    std::cerr << "Creating MySQL connection..." << std::endl;
     connection_ = mysql_init(nullptr);
     if (!connection_) {
+        std::cerr << "mysql_init failed" << std::endl;
         return false;
     }
     
     // 设置连接选项
-    my_bool reconnect = 1;
+    bool reconnect = true;
     mysql_options(connection_, MYSQL_OPT_RECONNECT, &reconnect);
     mysql_options(connection_, MYSQL_SET_CHARSET_NAME, "utf8mb4");
     
@@ -39,6 +46,7 @@ bool Database::init(const Config& config) {
     mysql_options(connection_, MYSQL_OPT_READ_TIMEOUT, &timeout);
     mysql_options(connection_, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
     
+    std::cerr << "Connecting to database..." << std::endl;
     return connect();
 }
 
@@ -59,6 +67,11 @@ bool Database::connect() {
     );
     
     if (!conn) {
+        std::cerr << "MySQL connection error: " << mysql_error(connection_) << std::endl;
+        std::cerr << "Error code: " << mysql_errno(connection_) << std::endl;
+        std::cerr << "Connecting to: " << config_.host << ":" << config_.port 
+                  << " database: " << config_.database << " user: " << config_.user << std::endl;
+        std::cerr << std::flush;
         return false;
     }
     
@@ -80,6 +93,7 @@ void Database::close() {
 }
 
 bool Database::init_tables() {
+    std::cerr << "Initializing database tables..." << std::endl;
     std::lock_guard<std::mutex> lock(mutex_);
     
     // 用户表
@@ -119,7 +133,7 @@ bool Database::init_tables() {
     
     // 群组表
     const char* create_groups = R"(
-        CREATE TABLE IF NOT EXISTS groups (
+        CREATE TABLE IF NOT EXISTS `groups` (
             group_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             group_name VARCHAR(128) NOT NULL,
             avatar_url VARCHAR(512) DEFAULT '',
@@ -142,7 +156,7 @@ bool Database::init_tables() {
             joined_at BIGINT NOT NULL,
             UNIQUE KEY uk_group_user (group_id, user_id),
             INDEX idx_user_id (user_id),
-            FOREIGN KEY (group_id) REFERENCES groups(group_id) ON DELETE CASCADE,
+            FOREIGN KEY (group_id) REFERENCES `groups`(group_id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     )";
@@ -182,7 +196,7 @@ bool Database::init_tables() {
             INDEX idx_group_id (group_id),
             INDEX idx_sender (sender_id),
             INDEX idx_created_at (created_at),
-            FOREIGN KEY (group_id) REFERENCES groups(group_id) ON DELETE CASCADE,
+            FOREIGN KEY (group_id) REFERENCES `groups`(group_id) ON DELETE CASCADE,
             FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     )";
@@ -202,13 +216,47 @@ bool Database::init_tables() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     )";
     
-    if (mysql_query(connection_, create_users) != 0) return false;
-    if (mysql_query(connection_, create_friends) != 0) return false;
-    if (mysql_query(connection_, create_groups) != 0) return false;
-    if (mysql_query(connection_, create_group_members) != 0) return false;
-    if (mysql_query(connection_, create_private_messages) != 0) return false;
-    if (mysql_query(connection_, create_group_messages) != 0) return false;
-    if (mysql_query(connection_, create_media_files) != 0) return false;
+    if (mysql_query(connection_, create_users) != 0) {
+        std::cerr << "Failed to create users table: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+    std::cerr << "Created users table" << std::endl;
+    
+    if (mysql_query(connection_, create_friends) != 0) {
+        std::cerr << "Failed to create friends table: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+    std::cerr << "Created friends table" << std::endl;
+    
+    if (mysql_query(connection_, create_groups) != 0) {
+        std::cerr << "Failed to create groups table: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+    std::cerr << "Created groups table" << std::endl;
+    
+    if (mysql_query(connection_, create_group_members) != 0) {
+        std::cerr << "Failed to create group_members table: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+    std::cerr << "Created group_members table" << std::endl;
+    
+    if (mysql_query(connection_, create_private_messages) != 0) {
+        std::cerr << "Failed to create private_messages table: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+    std::cerr << "Created private_messages table" << std::endl;
+    
+    if (mysql_query(connection_, create_group_messages) != 0) {
+        std::cerr << "Failed to create group_messages table: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+    std::cerr << "Created group_messages table" << std::endl;
+    
+    if (mysql_query(connection_, create_media_files) != 0) {
+        std::cerr << "Failed to create media_files table: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+    std::cerr << "Created media_files table" << std::endl;
     
     return true;
 }
@@ -741,7 +789,7 @@ bool Database::create_group(const std::string& group_name, uint64_t owner_id,
     std::string escaped_desc = escape_string(description);
     
     std::ostringstream sql;
-    sql << "INSERT INTO groups (group_name, owner_id, description, created_at, updated_at) VALUES ('"
+    sql << "INSERT INTO `groups` (group_name, owner_id, description, created_at, updated_at) VALUES ('"
         << escaped_name << "', " << owner_id << ", '" << escaped_desc 
         << "', " << now << ", " << now << ")";
     
@@ -764,7 +812,7 @@ bool Database::get_group_by_id(uint64_t group_id, GroupInfo& group) {
     
     std::ostringstream sql;
     sql << "SELECT group_id, group_name, avatar_url, description, owner_id, "
-        << "created_at, updated_at FROM groups WHERE group_id = " << group_id;
+        << "created_at, updated_at FROM `groups` WHERE group_id = " << group_id;
     
     if (mysql_query(connection_, sql.str().c_str()) != 0) {
         return false;
@@ -804,7 +852,7 @@ bool Database::update_group(const GroupInfo& group) {
     std::string escaped_desc = escape_string(group.description);
     
     std::ostringstream sql;
-    sql << "UPDATE groups SET group_name = '" << escaped_name 
+    sql << "UPDATE `groups` SET group_name = '" << escaped_name 
         << "', avatar_url = '" << escaped_avatar
         << "', description = '" << escaped_desc
         << "', updated_at = " << now 
@@ -817,7 +865,7 @@ bool Database::dismiss_group(uint64_t group_id) {
     std::lock_guard<std::mutex> lock(mutex_);
     
     std::ostringstream sql;
-    sql << "DELETE FROM groups WHERE group_id = " << group_id;
+    sql << "DELETE FROM `groups` WHERE group_id = " << group_id;
     
     return mysql_query(connection_, sql.str().c_str()) == 0;
 }
@@ -849,7 +897,7 @@ bool Database::get_user_groups(uint64_t user_id, std::vector<GroupInfo>& groups)
     
     std::ostringstream sql;
     sql << "SELECT g.group_id, g.group_name, g.avatar_url, g.description, g.owner_id, "
-        << "g.created_at, g.updated_at FROM groups g "
+        << "g.created_at, g.updated_at FROM `groups` g "
         << "INNER JOIN group_members gm ON g.group_id = gm.group_id "
         << "WHERE gm.user_id = " << user_id;
     
@@ -947,7 +995,7 @@ bool Database::is_group_owner(uint64_t group_id, uint64_t user_id) {
     std::lock_guard<std::mutex> lock(mutex_);
     
     std::ostringstream sql;
-    sql << "SELECT owner_id FROM groups WHERE group_id = " << group_id;
+    sql << "SELECT owner_id FROM `groups` WHERE group_id = " << group_id;
     
     if (mysql_query(connection_, sql.str().c_str()) != 0) {
         return false;
