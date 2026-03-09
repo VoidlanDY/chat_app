@@ -116,32 +116,33 @@ class Protocol {
 
   static int get nextSequence => ++_sequence;
 
-  /// 序列化消息
+  /// 序列化消息 (小端序，与服务器一致)
   static Uint8List serialize(MessageType type, int sequence, Map<String, dynamic> body) {
     final bodyBytes = utf8.encode(jsonEncode(body));
-    final buffer = ByteData(12 + bodyBytes.length);
+    // Header: 4(length) + 1(type) + 4(sequence) = 9 bytes
+    final buffer = ByteData(9 + bodyBytes.length);
     
-    // 写入消息头
-    buffer.setUint32(0, bodyBytes.length, Endian.big);
+    // 写入消息头 (小端序)
+    buffer.setUint32(0, bodyBytes.length, Endian.little);
     buffer.setUint8(4, type.value);
-    buffer.setUint32(5, sequence, Endian.big);
+    buffer.setUint32(5, sequence, Endian.little);
     
     // 写入消息体
     final bytes = buffer.buffer.asUint8List();
-    bytes.setAll(12, bodyBytes);
+    bytes.setAll(9, bodyBytes);
     
     return bytes;
   }
 
-  /// 解析消息头
+  /// 解析消息头 (小端序，与服务器一致)
   static MessageHeader? parseHeader(Uint8List data) {
-    if (data.length < 12) return null;
+    if (data.length < 9) return null;
     
     final buffer = ByteData.sublistView(data);
     return MessageHeader(
-      length: buffer.getUint32(0, Endian.big),
+      length: buffer.getUint32(0, Endian.little),
       type: MessageType.fromValue(buffer.getUint8(4)),
-      sequence: buffer.getUint32(5, Endian.big),
+      sequence: buffer.getUint32(5, Endian.little),
     );
   }
 

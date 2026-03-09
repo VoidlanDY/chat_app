@@ -149,26 +149,26 @@ class NetworkService {
 
   /// 处理接收缓冲区
   void _processBuffer() {
-    while (_buffer.length >= 12) {
-      // 解析消息头
-      final headerData = Uint8List.fromList(_buffer.sublist(0, 12));
+    while (_buffer.length >= 9) {
+      // 解析消息头 (9 字节)
+      final headerData = Uint8List.fromList(_buffer.sublist(0, 9));
       final header = Protocol.parseHeader(headerData);
       
       if (header == null) {
-        _buffer.removeRange(0, 12);
+        _buffer.removeRange(0, 9);
         continue;
       }
 
       // 检查是否有完整的消息体
-      if (_buffer.length < 12 + header.length) {
+      if (_buffer.length < 9 + header.length) {
         break;
       }
 
       // 提取消息体
       final bodyData = Uint8List.fromList(
-        _buffer.sublist(12, 12 + header.length),
+        _buffer.sublist(9, 9 + header.length),
       );
-      _buffer.removeRange(0, 12 + header.length);
+      _buffer.removeRange(0, 9 + header.length);
 
       // 解析并回调
       final body = Protocol.parseBody(bodyData);
