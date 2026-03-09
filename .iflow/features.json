@@ -131,8 +131,8 @@
         "可以邀请好友加入",
         "群组信息正确保存"
       ],
-      "status": "pending",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-09T10:00:00Z"
     },
     {
       "id": "F008",
@@ -228,9 +228,9 @@
   ],
   "statistics": {
     "total": 12,
-    "completed": 6,
+    "completed": 7,
     "inProgress": 0,
-    "pending": 6,
+    "pending": 5,
     "byPriority": {
       "high": 6,
       "medium": 4,

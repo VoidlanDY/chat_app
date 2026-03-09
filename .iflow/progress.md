@@ -7,7 +7,7 @@
 ## 当前状态
 - 阶段: 功能开发中
 - 最后更新: 2026-03-09
-- 完成功能: 6 / 12
+- 完成功能: 7 / 12
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -22,9 +22,9 @@
 - 缺少应用图标和启动画面资源
 
 ## 下一步计划
-1. 完成功能 #F007: 群组创建功能
-2. 完成功能 #F008: 群聊消息功能
-3. 完成功能 #F009: 群组管理功能
+1. 完成功能 #F008: 群聊消息功能
+2. 完成功能 #F009: 群组管理功能
+3. 完成功能 #F010: 多媒体消息 - 图片
 
 ## [2026-03-08] 完成功能 #F001 - MySQL 数据库初始化和连接配置
 - 实现内容:
@@ -150,3 +150,20 @@
   - `client/chat_app/lib/services/chat_service.dart` - 响应处理
   - `client/chat_app/lib/screens/contacts_screen.dart` - 联系人界面
   - `client/chat_app/lib/screens/friend_profile_screen.dart` - 好友详情界面
+
+## [2026-03-09] 完成功能 #F007 - 群组创建功能
+- 实现内容:
+  - ChatService 添加群组创建响应处理
+  - ChatService 添加邀请成员方法 (inviteGroupMembers)
+  - CreateGroupScreen 实现完整的创建群组+邀请成员流程
+  - 添加群组创建状态跟踪 (groupCreateSuccess, groupCreateError, createdGroupId)
+  - 修复测试脚本字节序问题
+- 测试结果: 通过
+  - 创建群组: 成功返回 group_id
+  - 邀请成员: 成功添加成员到群组
+  - 群组列表: 正确显示群组信息
+  - 成员列表: 正确显示群主和成员
+- 相关文件:
+  - `client/chat_app/lib/services/chat_service.dart` - 群组创建响应处理
+  - `client/chat_app/lib/screens/create_group_screen.dart` - 创建群组界面
+  - `test_group_feature.py` - 群组功能测试脚本
