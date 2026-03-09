@@ -30,6 +30,11 @@ class ChatService extends ChangeNotifier {
   // 好友请求相关状态
   bool _friendAddSuccess = false;
   String? _friendAddError;
+  
+  // 群组创建相关状态
+  bool _groupCreateSuccess = false;
+  String? _groupCreateError;
+  int? _createdGroupId;
 
   User? get currentUser => _currentUser;
   bool get isConnected => _isConnected;
@@ -46,6 +51,9 @@ class ChatService extends ChangeNotifier {
   List<User> get searchResults => _searchResults;
   bool get friendAddSuccess => _friendAddSuccess;
   String? get friendAddError => _friendAddError;
+  bool get groupCreateSuccess => _groupCreateSuccess;
+  String? get groupCreateError => _groupCreateError;
+  int? get createdGroupId => _createdGroupId;
   
   int get currentUserId => _currentUser?.userId ?? 0;
 
@@ -112,6 +120,12 @@ class ChatService extends ChangeNotifier {
         break;
       case MessageType.friendRemarkResponse:
         _handleFriendRemarkResponse(body);
+        break;
+      case MessageType.groupCreateResponse:
+        _handleGroupCreateResponse(body);
+        break;
+      case MessageType.groupAddMemberResponse:
+        _handleGroupAddMemberResponse(body);
         break;
       default:
         break;
@@ -448,11 +462,68 @@ class ChatService extends ChangeNotifier {
   }
 
   /// 创建群组
-  void createGroup(String groupName, String description) {
+  Future<bool> createGroup(String groupName, String description) async {
+    // 重置状态
+    _groupCreateSuccess = false;
+    _groupCreateError = null;
+    _createdGroupId = null;
+    
     _network.send(MessageType.groupCreate, {
       'group_name': groupName,
       'description': description,
     });
+    
+    // 等待响应（最多5秒）
+    for (int i = 0; i < 50; i++) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (_groupCreateSuccess || _groupCreateError != null) {
+        return _groupCreateSuccess;
+      }
+    }
+    
+    _groupCreateError = 'Create group timeout';
+    return false;
+  }
+  
+  /// 邀请成员加入群组
+  void inviteGroupMembers(int groupId, List<int> memberIds) {
+    for (final memberId in memberIds) {
+      _network.send(MessageType.groupAddMember, {
+        'group_id': groupId,
+        'user_id': memberId,
+      });
+    }
+    // 刷新群组列表
+    _network.send(MessageType.groupList, {});
+  }
+  
+  /// 处理群组创建响应
+  void _handleGroupCreateResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      _groupCreateSuccess = true;
+      _groupCreateError = null;
+      final data = body['data'] as Map<String, dynamic>?;
+      if (data != null) {
+        _createdGroupId = data['group_id'] as int?;
+      }
+      // 刷新群组列表
+      _network.send(MessageType.groupList, {});
+    } else {
+      _groupCreateSuccess = false;
+      _groupCreateError = body['message'] as String? ?? 'Failed to create group';
+    }
+    notifyListeners();
+  }
+  
+  /// 处理添加群成员响应
+  void _handleGroupAddMemberResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      // 刷新群组列表
+      _network.send(MessageType.groupList, {});
+    }
+    notifyListeners();
   }
 
   /// 加入群组

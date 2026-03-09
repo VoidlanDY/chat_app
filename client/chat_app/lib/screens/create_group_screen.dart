@@ -26,22 +26,37 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   Future<void> _createGroup() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedMembers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请至少选择一个群成员')),
-      );
-      return;
-    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      context.read<ChatService>().createGroup(
+      final chatService = context.read<ChatService>();
+      
+      // 1. 创建群组
+      final success = await chatService.createGroup(
         _nameController.text,
         _descriptionController.text,
       );
+      
+      if (!success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(chatService.groupCreateError ?? '群组创建失败'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      // 2. 邀请选中的成员
+      final groupId = chatService.createdGroupId;
+      if (groupId != null && _selectedMembers.isNotEmpty) {
+        chatService.inviteGroupMembers(groupId, _selectedMembers.toList());
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
