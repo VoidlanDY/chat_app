@@ -21,6 +21,14 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
     
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+    
+    - name: Install Android SDK 35
+      run: |
+        sdkmanager "platforms;android-35"
+        sdkmanager "build-tools;35.0.0"
+    
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
