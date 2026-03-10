@@ -7,6 +7,9 @@ PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 SERVER_DIR="$PROJECT_ROOT/server"
 MEDIA_DIR="$SERVER_DIR/media"
 
+# DeepSeek API Key (用于 AI 机器人)
+DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-sk-86c5f0d4e9b245a7b22248b2a4bded44}"
+
 # 颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -32,12 +35,13 @@ echo -e "${GREEN}✓ 媒体服务器已启动 (PID: $MEDIA_PID)${NC}"
 # 等待媒体服务器启动
 sleep 1
 
-# 启动主聊天服务器
+# 启动主聊天服务器 (带 DeepSeek API)
 echo -e "${YELLOW}启动聊天服务器 (端口 8888)...${NC}"
 cd "$SERVER_DIR/build"
 ./chat_server --deepseek-api-key "$DEEPSEEK_API_KEY" &
 CHAT_PID=$!
 echo -e "${GREEN}✓ 聊天服务器已启动 (PID: $CHAT_PID)${NC}"
+echo -e "${GREEN}✓ AI 机器人已启用 (DeepSeek API)${NC}"
 
 echo ""
 echo -e "${GREEN}===================================${NC}"

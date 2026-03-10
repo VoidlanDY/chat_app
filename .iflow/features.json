@@ -241,8 +241,8 @@
         "离线时可查看历史记录",
         "消息与服务器同步"
       ],
-      "status": "pending",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-11T09:00:00Z"
     },
     {
       "id": "F014",
@@ -260,15 +260,15 @@
         "AI 回复内容合理",
         "支持多轮对话上下文"
       ],
-      "status": "pending",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-11T09:30:00Z"
     }
   ],
   "statistics": {
     "total": 14,
-    "completed": 11,
+    "completed": 13,
     "inProgress": 0,
-    "pending": 3,
+    "pending": 1,
     "byPriority": {
       "high": 8,
       "medium": 4,

@@ -7,7 +7,7 @@
 ## 当前状态
 - 阶段: 功能开发中
 - 最后更新: 2026-03-11
-- 完成功能: 11 / 12
+- 完成功能: 13 / 14
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -18,6 +18,8 @@
 - 2026-03-10 完成功能 #F009: 群组管理功能
 - 2026-03-11 完成功能 #F010: 多媒体消息 - 图片
 - 2026-03-11 完成功能 #F011: 多媒体消息 - 文件
+- 2026-03-11 完成功能 #F013: 客户端本地聊天记录保存
+- 2026-03-11 完成功能 #F014: DeepSeek AI 机器人自动回复
 
 ## 待处理问题
 - MySQL 数据库连接需要配置
@@ -299,3 +301,48 @@
   - `client/chat_app/lib/services/chat_service.dart` - 文件消息方法
   - `client/chat_app/lib/screens/chat_screen.dart` - 文件选择和下载
   - `test_file_message.py` - 测试脚本
+
+## [2026-03-11] 完成功能 #F013 - 客户端本地聊天记录保存
+- 实现内容:
+  - 客户端: MessageDatabase (Hive 存储)
+    - saveMessage/saveMessages 方法
+    - getMessages 分页获取
+    - searchMessages 搜索功能
+    - 会话管理 (saveConversation/getConversations)
+  - ChatService 集成
+    - 接收消息时自动保存
+    - 加载历史时保存服务器消息
+    - loadLocalMessages 离线加载
+- 测试结果: 通过
+  - 消息自动保存到本地 Hive
+  - 历史记录正确加载
+  - 服务器消息与本地同步
+- 相关文件:
+  - `client/chat_app/lib/services/message_database.dart` - Hive 数据库
+  - `client/chat_app/lib/services/chat_service.dart` - 集成调用
+  - `client/chat_app/lib/main.dart` - 初始化
+
+## [2026-03-11] 完成功能 #F014 - DeepSeek AI 机器人自动回复
+- 实现内容:
+  - 服务器端: BotManager 机器人管理器
+    - 创建机器人用户 (deepseek_bot)
+    - 自动接受好友请求
+    - 消息自动回复触发
+  - 服务器端: DeepSeekClient API 客户端
+    - 异步 HTTP 请求
+    - 多轮对话上下文管理
+    - 可配置模型和系统提示词
+  - 启动脚本: 支持 --deepseek-api-key 参数
+- 测试结果: 通过 (5/5 测试用例)
+  - 机器人用户创建: user_id=37
+  - 好友请求自动接受: 成功
+  - AI 自动回复: 成功返回 DeepSeek 响应
+  - 多轮对话: 上下文正确维护
+  - 历史记录: 正确保存和加载
+- 相关文件:
+  - `server/src/bot_manager.cpp` - 机器人管理
+  - `server/src/deepseek_client.cpp` - API 客户端
+  - `server/src/session.cpp` - 消息触发
+  - `server/src/main.cpp` - 启动配置
+  - `start_servers.sh` - 启动脚本
+  - `test_ai_bot.py` - 测试脚本
