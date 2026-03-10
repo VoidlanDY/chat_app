@@ -1011,6 +1011,42 @@ bool Database::is_group_owner(uint64_t group_id, uint64_t user_id) {
     return is_owner;
 }
 
+bool Database::set_group_admin(uint64_t group_id, uint64_t user_id, bool is_admin) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    std::ostringstream sql;
+    sql << "UPDATE group_members SET is_admin = " << (is_admin ? 1 : 0)
+        << " WHERE group_id = " << group_id << " AND user_id = " << user_id;
+    
+    return mysql_query(connection_, sql.str().c_str()) == 0;
+}
+
+bool Database::transfer_group_owner(uint64_t group_id, uint64_t old_owner_id, uint64_t new_owner_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    // 更新群主
+    std::ostringstream sql1;
+    sql1 << "UPDATE `groups` SET owner_id = " << new_owner_id 
+         << " WHERE group_id = " << group_id << " AND owner_id = " << old_owner_id;
+    
+    if (mysql_query(connection_, sql1.str().c_str()) != 0) {
+        return false;
+    }
+    
+    // 取消原群主的管理员身份（如果有）
+    std::ostringstream sql2;
+    sql2 << "UPDATE group_members SET is_admin = 0 WHERE group_id = " << group_id 
+         << " AND user_id = " << old_owner_id;
+    mysql_query(connection_, sql2.str().c_str());
+    
+    // 设置新群主为管理员
+    std::ostringstream sql3;
+    sql3 << "UPDATE group_members SET is_admin = 1 WHERE group_id = " << group_id 
+         << " AND user_id = " << new_owner_id;
+    
+    return mysql_query(connection_, sql3.str().c_str()) == 0;
+}
+
 // ==================== 群聊消息相关实现 ====================
 
 bool Database::save_group_message(Message& message) {

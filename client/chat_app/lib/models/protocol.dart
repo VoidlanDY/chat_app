@@ -61,13 +61,17 @@ enum MessageType {
   groupAddMemberResponse(65),
   groupRemoveMember(66),
   groupRemoveMemberResponse(67),
+  groupSetAdmin(68),
+  groupSetAdminResponse(69),
+  groupTransferOwner(70),
+  groupTransferOwnerResponse(71),
 
   // 群聊消息
-  groupMessage(70),
-  groupMessageResponse(71),
-  groupMessageAck(72),
-  groupHistory(73),
-  groupHistoryResponse(74),
+  groupMessage(72),
+  groupMessageResponse(73),
+  groupMessageAck(74),
+  groupHistory(75),
+  groupHistoryResponse(76),
 
   // 多媒体消息
   mediaUpload(80),

@@ -7,7 +7,7 @@
 ## 当前状态
 - 阶段: 功能开发中
 - 最后更新: 2026-03-10
-- 完成功能: 8 / 12
+- 完成功能: 9 / 12
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -15,6 +15,7 @@
 - 2026-03-08 Flutter 客户端框架搭建完成
 - 2026-03-08 Android 平台配置完成
 - 2026-03-08 完成功能 #F001: MySQL 数据库初始化和连接配置
+- 2026-03-10 完成功能 #F009: 群组管理功能
 
 ## 待处理问题
 - MySQL 数据库连接需要配置
@@ -22,8 +23,8 @@
 - 缺少应用图标和启动画面资源
 
 ## 下一步计划
-1. 完成功能 #F009: 群组管理功能
-2. 完成功能 #F010: 多媒体消息 - 图片
+1. 完成功能 #F010: 多媒体消息 - 图片
+2. 完成功能 #F011: 多媒体消息 - 文件
 3. 完成功能 #F012: 心跳和重连机制
 
 ## [2026-03-08] 完成功能 #F001 - MySQL 数据库初始化和连接配置
@@ -200,3 +201,39 @@
   - `client/chat_app/lib/services/chat_service.dart` - 群消息响应处理
   - `client/chat_app/lib/screens/chat_screen.dart` - 聊天界面支持群聊
   - `test_group_message.py` - 群聊消息测试脚本
+
+## [2026-03-10] 完成功能 #F009 - 群组管理功能
+- 实现内容:
+  - 添加 GROUP_SET_ADMIN 和 GROUP_TRANSFER_OWNER 消息类型
+  - 实现 GroupManager::set_admin 方法 (设置/取消管理员)
+  - 实现 GroupManager::transfer_owner 方法 (转让群主)
+  - 实现 Database::set_group_admin 方法
+  - 实现 Database::transfer_group_owner 方法
+  - Session 添加 handle_group_set_admin 和 handle_group_transfer_owner 处理器
+  - 客户端 ChatService 添加群组管理方法
+  - 创建 GroupManagementScreen 群组管理界面
+  - 支持踢出成员、退出群组、解散群组功能
+- 测试结果: 通过 (12/12 测试用例)
+  - 设置管理员: 成功
+  - 管理员状态验证: 正确
+  - 取消管理员: 成功
+  - 踢出成员: 成功
+  - 成员移除验证: 正确
+  - 转让群主: 成功
+  - 群主变更验证: 正确
+  - 退出群组: 成功
+  - 退出验证: 正确
+  - 解散群组: 成功
+  - 解散验证: 正确
+- 相关文件:
+  - `server/include/protocol.hpp` - 新增消息类型
+  - `server/include/group_manager.hpp` - 新增方法声明
+  - `server/include/database.hpp` - 新增方法声明
+  - `server/include/session.hpp` - 新增处理器声明
+  - `server/src/group_manager.cpp` - 群组管理实现
+  - `server/src/database.cpp` - 数据库操作实现
+  - `server/src/session.cpp` - 消息处理实现
+  - `client/chat_app/lib/models/protocol.dart` - 客户端协议更新
+  - `client/chat_app/lib/services/chat_service.dart` - 客户端服务更新
+  - `client/chat_app/lib/screens/group_management_screen.dart` - 群组管理界面
+  - `test_group_management.py` - 测试脚本

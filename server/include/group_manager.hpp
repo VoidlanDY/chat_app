@@ -59,6 +59,10 @@ public:
     bool set_admin(uint64_t operator_id, uint64_t group_id, 
                    uint64_t user_id, bool is_admin, std::string& error);
     
+    // 转让群主
+    bool transfer_owner(uint64_t owner_id, uint64_t group_id,
+                        uint64_t new_owner_id, std::string& error);
+    
     void set_server(std::shared_ptr<Server> server) { server_ = server; }
     
 private:

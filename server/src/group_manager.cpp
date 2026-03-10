@@ -148,8 +148,36 @@ bool GroupManager::set_admin(uint64_t operator_id, uint64_t group_id,
         return false;
     }
     
-    if (!database_->add_group_member(group_id, user_id, is_admin)) {
+    if (!database_->set_group_admin(group_id, user_id, is_admin)) {
         error = "Failed to set admin";
+        return false;
+    }
+    
+    return true;
+}
+
+bool GroupManager::transfer_owner(uint64_t owner_id, uint64_t group_id,
+                                  uint64_t new_owner_id, std::string& error) {
+    // 只有群主可以转让群主身份
+    if (!is_owner(group_id, owner_id)) {
+        error = "Only group owner can transfer ownership";
+        return false;
+    }
+    
+    // 不能转让给自己
+    if (owner_id == new_owner_id) {
+        error = "Cannot transfer ownership to yourself";
+        return false;
+    }
+    
+    // 检查新群主是否是群成员
+    if (!is_member(group_id, new_owner_id)) {
+        error = "New owner must be a group member";
+        return false;
+    }
+    
+    if (!database_->transfer_group_owner(group_id, owner_id, new_owner_id)) {
+        error = "Failed to transfer ownership";
         return false;
     }
     

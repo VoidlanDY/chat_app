@@ -69,6 +69,8 @@ public:
     bool is_group_member(uint64_t group_id, uint64_t user_id);
     bool is_group_admin(uint64_t group_id, uint64_t user_id);
     bool is_group_owner(uint64_t group_id, uint64_t user_id);
+    bool set_group_admin(uint64_t group_id, uint64_t user_id, bool is_admin);
+    bool transfer_group_owner(uint64_t group_id, uint64_t old_owner_id, uint64_t new_owner_id);
     
     // 群聊消息相关
     bool save_group_message(Message& message);

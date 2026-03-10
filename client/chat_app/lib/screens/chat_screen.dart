@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/chat_service.dart';
 import '../models/models.dart';
+import 'group_management_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final int peerId;
@@ -90,6 +91,21 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         actions: [
+          if (widget.isGroup)
+            IconButton(
+              icon: const Icon(Icons.group),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupManagementScreen(
+                      groupId: widget.peerId,
+                      groupName: widget.peerName,
+                    ),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {

@@ -168,8 +168,8 @@
         "管理员有相应权限",
         "可以踢出成员"
       ],
-      "status": "pending",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-10T15:00:00Z"
     },
     {
       "id": "F010",
@@ -228,9 +228,9 @@
   ],
   "statistics": {
     "total": 12,
-    "completed": 8,
+    "completed": 9,
     "inProgress": 0,
-    "pending": 4,
+    "pending": 3,
     "byPriority": {
       "high": 6,
       "medium": 4,

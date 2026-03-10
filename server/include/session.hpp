@@ -80,6 +80,8 @@ private:
     void handle_group_members(uint32_t sequence, const json& body);
     void handle_group_add_member(uint32_t sequence, const json& body);
     void handle_group_remove_member(uint32_t sequence, const json& body);
+    void handle_group_set_admin(uint32_t sequence, const json& body);
+    void handle_group_transfer_owner(uint32_t sequence, const json& body);
     void handle_group_message(uint32_t sequence, const json& body);
     void handle_group_history(uint32_t sequence, const json& body);
     

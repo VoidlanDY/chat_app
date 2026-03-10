@@ -127,6 +127,24 @@ class ChatService extends ChangeNotifier {
       case MessageType.groupAddMemberResponse:
         _handleGroupAddMemberResponse(body);
         break;
+      case MessageType.groupSetAdminResponse:
+        _handleGroupSetAdminResponse(body);
+        break;
+      case MessageType.groupTransferOwnerResponse:
+        _handleGroupTransferOwnerResponse(body);
+        break;
+      case MessageType.groupRemoveMemberResponse:
+        _handleGroupRemoveMemberResponse(body);
+        break;
+      case MessageType.groupLeaveResponse:
+        _handleGroupLeaveResponse(body);
+        break;
+      case MessageType.groupDismissResponse:
+        _handleGroupDismissResponse(body);
+        break;
+      case MessageType.groupMembersResponse:
+        _handleGroupMembersResponse(body);
+        break;
       default:
         break;
     }
@@ -497,6 +515,52 @@ class ChatService extends ChangeNotifier {
     _network.send(MessageType.groupList, {});
   }
   
+  /// 设置/取消管理员
+  void setGroupAdmin(int groupId, int userId, bool isAdmin) {
+    _network.send(MessageType.groupSetAdmin, {
+      'group_id': groupId,
+      'user_id': userId,
+      'is_admin': isAdmin,
+    });
+  }
+  
+  /// 转让群主
+  void transferGroupOwner(int groupId, int newOwnerId) {
+    _network.send(MessageType.groupTransferOwner, {
+      'group_id': groupId,
+      'new_owner_id': newOwnerId,
+    });
+  }
+  
+  /// 踢出群成员
+  void removeGroupMember(int groupId, int userId) {
+    _network.send(MessageType.groupRemoveMember, {
+      'group_id': groupId,
+      'user_id': userId,
+    });
+  }
+  
+  /// 退出群组
+  void leaveGroup(int groupId) {
+    _network.send(MessageType.groupLeave, {
+      'group_id': groupId,
+    });
+  }
+  
+  /// 解散群组
+  void dismissGroup(int groupId) {
+    _network.send(MessageType.groupDismiss, {
+      'group_id': groupId,
+    });
+  }
+  
+  /// 获取群成员列表
+  void getGroupMembers(int groupId) {
+    _network.send(MessageType.groupMembers, {
+      'group_id': groupId,
+    });
+  }
+  
   /// 处理群组创建响应
   void _handleGroupCreateResponse(Map<String, dynamic> body) {
     final code = body['code'] ?? -1;
@@ -689,5 +753,73 @@ class ChatService extends ChangeNotifier {
     if (avatarUrl != null) data['avatar_url'] = avatarUrl;
     
     _network.send(MessageType.userUpdate, data);
+  }
+  
+  /// 处理设置管理员响应
+  void _handleGroupSetAdminResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      // 刷新群组列表
+      _network.send(MessageType.groupList, {});
+    }
+    notifyListeners();
+  }
+  
+  /// 处理转让群主响应
+  void _handleGroupTransferOwnerResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      // 刷新群组列表
+      _network.send(MessageType.groupList, {});
+    }
+    notifyListeners();
+  }
+  
+  /// 处理踢出成员响应
+  void _handleGroupRemoveMemberResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      // 刷新群组列表
+      _network.send(MessageType.groupList, {});
+    }
+    notifyListeners();
+  }
+  
+  /// 处理退出群组响应
+  void _handleGroupLeaveResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      // 刷新群组列表
+      _network.send(MessageType.groupList, {});
+    }
+    notifyListeners();
+  }
+  
+  /// 处理解散群组响应
+  void _handleGroupDismissResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      // 刷新群组列表
+      _network.send(MessageType.groupList, {});
+    }
+    notifyListeners();
+  }
+  
+  /// 处理群成员列表响应
+  void _handleGroupMembersResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      final data = body['data'] as Map<String, dynamic>?;
+      if (data != null) {
+        final membersJson = data['members'] as List<dynamic>? ?? [];
+        // 存储群成员信息到本地
+        for (final item in membersJson) {
+          final memberData = item as Map<String, dynamic>;
+          final user = User.fromJson(memberData);
+          _users[user.userId] = user;
+        }
+      }
+    }
+    notifyListeners();
   }
 }

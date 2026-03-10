@@ -213,6 +213,12 @@ void Session::handle_message(MessageType type, uint32_t sequence, const json& bo
         case MessageType::GROUP_REMOVE_MEMBER:
             handle_group_remove_member(sequence, body);
             break;
+        case MessageType::GROUP_SET_ADMIN:
+            handle_group_set_admin(sequence, body);
+            break;
+        case MessageType::GROUP_TRANSFER_OWNER:
+            handle_group_transfer_owner(sequence, body);
+            break;
             
         // 群聊消息
         case MessageType::GROUP_MESSAGE:
@@ -813,6 +819,53 @@ void Session::handle_group_remove_member(uint32_t sequence, const json& body) {
     if (group_manager_->remove_member(user_id_, group_id, user_id, error)) {
         json response = {{"success", true}};
         send(Protocol::create_response(MessageType::GROUP_REMOVE_MEMBER_RESPONSE, sequence, response));
+    } else {
+        send(Protocol::create_error(sequence, 500, error));
+    }
+}
+
+void Session::handle_group_set_admin(uint32_t sequence, const json& body) {
+    if (!is_authenticated()) {
+        send(Protocol::create_error(sequence, 401, "Not authenticated"));
+        return;
+    }
+    
+    uint64_t group_id = body.value("group_id", 0);
+    uint64_t user_id = body.value("user_id", 0);
+    bool is_admin = body.value("is_admin", true);
+    
+    if (group_id == 0 || user_id == 0) {
+        send(Protocol::create_error(sequence, 400, "Group ID and User ID are required"));
+        return;
+    }
+    
+    std::string error;
+    if (group_manager_->set_admin(user_id_, group_id, user_id, is_admin, error)) {
+        json response = {{"success", true}, {"user_id", user_id}, {"is_admin", is_admin}};
+        send(Protocol::create_response(MessageType::GROUP_SET_ADMIN_RESPONSE, sequence, response));
+    } else {
+        send(Protocol::create_error(sequence, 500, error));
+    }
+}
+
+void Session::handle_group_transfer_owner(uint32_t sequence, const json& body) {
+    if (!is_authenticated()) {
+        send(Protocol::create_error(sequence, 401, "Not authenticated"));
+        return;
+    }
+    
+    uint64_t group_id = body.value("group_id", 0);
+    uint64_t new_owner_id = body.value("new_owner_id", 0);
+    
+    if (group_id == 0 || new_owner_id == 0) {
+        send(Protocol::create_error(sequence, 400, "Group ID and new owner ID are required"));
+        return;
+    }
+    
+    std::string error;
+    if (group_manager_->transfer_owner(user_id_, group_id, new_owner_id, error)) {
+        json response = {{"success", true}, {"new_owner_id", new_owner_id}};
+        send(Protocol::create_response(MessageType::GROUP_TRANSFER_OWNER_RESPONSE, sequence, response));
     } else {
         send(Protocol::create_error(sequence, 500, error));
     }
