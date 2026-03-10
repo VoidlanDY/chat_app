@@ -6,8 +6,8 @@
 
 ## 当前状态
 - 阶段: 功能开发中
-- 最后更新: 2026-03-09
-- 完成功能: 7 / 12
+- 最后更新: 2026-03-10
+- 完成功能: 8 / 12
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -22,9 +22,9 @@
 - 缺少应用图标和启动画面资源
 
 ## 下一步计划
-1. 完成功能 #F008: 群聊消息功能
-2. 完成功能 #F009: 群组管理功能
-3. 完成功能 #F010: 多媒体消息 - 图片
+1. 完成功能 #F009: 群组管理功能
+2. 完成功能 #F010: 多媒体消息 - 图片
+3. 完成功能 #F012: 心跳和重连机制
 
 ## [2026-03-08] 完成功能 #F001 - MySQL 数据库初始化和连接配置
 - 实现内容:
@@ -50,6 +50,21 @@
 - 服务器: C++17, asio (异步网络), MySQL, OpenSSL
 - 客户端: Flutter 3.0+, Dart, Provider (状态管理)
 - 平台: Android (API 21+)
+
+## [2026-03-10] 添加测试方法和项目文档
+- 实现内容:
+  - 创建项目 README.md 文档
+  - 添加测试机器人交互测试方法
+  - 添加 Python 脚本测试方法说明
+  - 记录消息协议类型定义
+- 测试方法:
+  - 使用 test_bot.py 启动测试机器人保持在线
+  - 机器人自动接受好友请求
+  - 可通过 Python 脚本发送消息和查看历史
+  - 支持与真实 App 用户交互测试
+- 相关文件:
+  - `README.md` - 项目介绍和测试文档
+  - `/root/test_bot.py` - 测试机器人脚本
 
 ## [2026-03-08] 完成功能 #F002 - 用户注册功能
 - 实现内容:
@@ -167,3 +182,21 @@
   - `client/chat_app/lib/services/chat_service.dart` - 群组创建响应处理
   - `client/chat_app/lib/screens/create_group_screen.dart` - 创建群组界面
   - `test_group_feature.py` - 群组功能测试脚本
+
+## [2026-03-10] 完成功能 #F008 - 群聊消息功能
+- 实现内容:
+  - 修复 Server::broadcast_to_group 方法，正确获取群成员列表并广播
+  - 启用 Session::handle_group_message 中的消息广播调用
+  - 群消息实时推送给所有在线群成员
+  - 支持群消息历史加载
+- 测试结果: 通过
+  - 群消息发送: 成功返回 message_id
+  - 消息广播: 所有群成员收到消息 (3/3 成员收到)
+  - 历史加载: 正确返回群消息历史
+  - 多消息测试: 4条消息正确存储和加载
+- 相关文件:
+  - `server/src/server.cpp` - broadcast_to_group 实现
+  - `server/src/session.cpp` - 群消息处理和广播
+  - `client/chat_app/lib/services/chat_service.dart` - 群消息响应处理
+  - `client/chat_app/lib/screens/chat_screen.dart` - 聊天界面支持群聊
+  - `test_group_message.py` - 群聊消息测试脚本

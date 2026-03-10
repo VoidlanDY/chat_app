@@ -149,8 +149,8 @@
         "群消息历史可加载",
         "消息发送者正确标识"
       ],
-      "status": "pending",
-      "completedAt": null
+      "status": "completed",
+      "completedAt": "2026-03-10T12:00:00Z"
     },
     {
       "id": "F009",
@@ -228,9 +228,9 @@
   ],
   "statistics": {
     "total": 12,
-    "completed": 7,
+    "completed": 8,
     "inProgress": 0,
-    "pending": 5,
+    "pending": 4,
     "byPriority": {
       "high": 6,
       "medium": 4,
