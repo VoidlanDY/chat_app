@@ -144,9 +144,18 @@ void Server::broadcast(const std::vector<uint8_t>& data) {
 }
 
 void Server::broadcast_to_group(uint64_t group_id, const std::vector<uint8_t>& data) {
-    // 实际实现需要从数据库获取群成员列表，然后逐个发送
-    // 这里简化处理
-    broadcast(data);
+    if (!group_manager_) {
+        std::cerr << "GroupManager not initialized for broadcast_to_group" << std::endl;
+        return;
+    }
+    
+    // 获取群成员列表
+    auto member_ids = group_manager_->get_group_members(group_id);
+    
+    // 向每个在线成员发送消息
+    for (uint64_t member_id : member_ids) {
+        send_to_user(member_id, data);
+    }
 }
 
 void Server::send_to_user(uint64_t user_id, const std::vector<uint8_t>& data) {

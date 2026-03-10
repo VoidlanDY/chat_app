@@ -845,7 +845,7 @@ void Session::handle_group_message(uint32_t sequence, const json& body) {
         send(Protocol::create_response(MessageType::GROUP_MESSAGE_RESPONSE, sequence, response));
         
         // 广播给群成员
-        // server_->broadcast_to_group(group_id, Protocol::serialize(MessageType::GROUP_MESSAGE, 0, message.to_json()));
+        server_->broadcast_to_group(group_id, Protocol::serialize(MessageType::GROUP_MESSAGE, 0, message.to_json()));
     } else {
         send(Protocol::create_error(sequence, 500, error));
     }
