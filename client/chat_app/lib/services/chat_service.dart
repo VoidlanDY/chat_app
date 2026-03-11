@@ -7,15 +7,20 @@ import '../models/protocol.dart';
 import 'network_service.dart';
 import 'message_database.dart';
 import 'notification_service.dart';
+import 'e2ee_service.dart';
 
 class ChatService extends ChangeNotifier {
   final NetworkService _network = NetworkService();
   final MessageDatabase _messageDb = MessageDatabase();
   final NotificationService _notificationService = NotificationService();
+  final E2EEService _e2ee = E2EEService();
   
   User? _currentUser;
   bool _isConnected = false;
   bool _isAuthenticated = false;
+  
+  // 端到端加密状态
+  bool _e2eeEnabled = false;
   
   // 注册状态
   bool _registerSuccess = false;
@@ -261,6 +266,16 @@ class ChatService extends ChangeNotifier {
       case MessageType.mediaUploadResponse:
         _handleMediaUploadResponse(body);
         break;
+      case MessageType.keyUploadResponse:
+        _handleKeyUploadResponse(body);
+        break;
+      case MessageType.keyResponse:
+        _handleKeyResponse(body);
+        break;
+      case MessageType.encryptedMessage:
+      case MessageType.encryptedMessageResponse:
+        _handleEncryptedMessage(body);
+        break;
       default:
         break;
     }
@@ -359,6 +374,9 @@ class ChatService extends ChangeNotifier {
           _isReconnecting = false;
           debugPrint('Reconnect login successful');
         }
+        
+        // 初始化端到端加密
+        _initE2EE();
         
         // 加载好友列表
         _network.send(MessageType.friendList, {});
@@ -1244,4 +1262,173 @@ class ChatService extends ChangeNotifier {
       return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
     }
   }
+  
+  // ==================== 端到端加密相关 ====================
+  
+  /// 初始化端到端加密
+  Future<void> _initE2EE() async {
+    try {
+      await _e2ee.init();
+      
+      // 如果没有密钥对，生成新的
+      if (!_e2ee.isInitialized) {
+        await _e2ee.generateKeyPair();
+        debugPrint('Generated new E2EE key pair');
+      }
+      
+      // 上传公钥到服务器
+      final publicKey = _e2ee.getPublicKeyPem();
+      if (publicKey != null) {
+        _network.send(MessageType.keyUpload, {
+          'public_key': publicKey,
+        });
+        debugPrint('Uploading public key to server');
+      }
+      
+      _e2eeEnabled = true;
+    } catch (e) {
+      debugPrint('Failed to initialize E2EE: $e');
+      _e2eeEnabled = false;
+    }
+  }
+  
+  /// 获取用户的公钥
+  Future<String?> getUserPublicKey(int userId) async {
+    // 先检查缓存
+    final cached = _e2ee.getCachedPublicKey(userId);
+    if (cached != null) {
+      return cached;
+    }
+    
+    // 从服务器获取
+    // 发送请求
+    _network.send(MessageType.keyRequest, {
+      'user_id': userId,
+    });
+    
+    // 等待响应（通过监听器实现）
+    // 简化处理：返回 null，让调用者等待
+    return null;
+  }
+  
+  /// 发送加密私聊消息
+  Future<bool> sendEncryptedPrivateMessage(int receiverId, String content) async {
+    if (!_e2eeEnabled) {
+      debugPrint('E2EE not enabled, sending plain message');
+      sendPrivateMessage(receiverId, content);
+      return true;
+    }
+    
+    try {
+      // 获取接收者的公钥
+      String? recipientPublicKey = _e2ee.getCachedPublicKey(receiverId);
+      
+      if (recipientPublicKey == null) {
+        // 请求公钥
+        _network.send(MessageType.keyRequest, {
+          'user_id': receiverId,
+        });
+        // 简化：先发送普通消息
+        sendPrivateMessage(receiverId, content);
+        return true;
+      }
+      
+      // 加密消息
+      final encrypted = await _e2ee.encryptMessage(content, recipientPublicKey);
+      
+      // 发送加密消息
+      _network.send(MessageType.encryptedMessage, {
+        'receiver_id': receiverId,
+        'encrypted_key': encrypted['encrypted_key'],
+        'iv': encrypted['iv'],
+        'encrypted_content': encrypted['encrypted_content'],
+        'media_type': 0,
+        'media_url': '',
+      });
+      
+      return true;
+    } catch (e) {
+      debugPrint('Failed to send encrypted message: $e');
+      // 回退到普通消息
+      sendPrivateMessage(receiverId, content);
+      return false;
+    }
+  }
+  
+  /// 解密消息
+  Future<String?> decryptMessage(Message message) async {
+    if (message.extra.isEmpty) {
+      return message.content;
+    }
+    
+    try {
+      final extra = jsonDecode(message.extra) as Map<String, dynamic>;
+      final isEncrypted = extra['encrypted'] as bool? ?? false;
+      
+      if (!isEncrypted) {
+        return message.content;
+      }
+      
+      final encryptedKey = extra['encrypted_key'] as String? ?? '';
+      final iv = extra['iv'] as String? ?? '';
+      final encryptedContent = extra['encrypted_content'] as String? ?? '';
+      
+      if (encryptedKey.isEmpty || iv.isEmpty || encryptedContent.isEmpty) {
+        return message.content;
+      }
+      
+      return await _e2ee.decryptMessage(
+        encryptedKey: encryptedKey,
+        iv: iv,
+        encryptedContent: encryptedContent,
+      );
+    } catch (e) {
+      debugPrint('Failed to decrypt message: $e');
+      return message.content;
+    }
+  }
+  
+  /// 处理公钥上传响应
+  void _handleKeyUploadResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      debugPrint('Public key uploaded successfully');
+    } else {
+      debugPrint('Failed to upload public key: ${body['message']}');
+    }
+  }
+  
+  /// 处理公钥请求响应
+  void _handleKeyResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      final data = body['data'] as Map<String, dynamic>?;
+      if (data != null) {
+        final userId = data['user_id'] as int;
+        final publicKey = data['public_key'] as String;
+        _e2ee.cachePublicKey(userId, publicKey);
+        debugPrint('Cached public key for user $userId');
+      }
+    }
+  }
+  
+  /// 处理加密消息
+  void _handleEncryptedMessage(Map<String, dynamic> body) {
+    final message = Message.fromJson(body);
+    final key = message.senderId;
+    
+    if (!_messages.containsKey(key)) {
+      _messages[key] = [];
+    }
+    _messages[key]!.add(message);
+    
+    // 保存到本地数据库
+    _messageDb.saveMessage(message);
+    
+    _updateConversation(message);
+    notifyListeners();
+  }
+  
+  /// 端到端加密是否启用
+  bool get e2eeEnabled => _e2eeEnabled;
 }

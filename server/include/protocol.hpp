@@ -97,6 +97,14 @@ enum class MessageType : uint8_t {
     HEARTBEAT = 100,
     HEARTBEAT_RESPONSE = 101,
     
+    // 端到端加密
+    KEY_UPLOAD = 110,
+    KEY_UPLOAD_RESPONSE = 111,
+    KEY_REQUEST = 112,
+    KEY_RESPONSE = 113,
+    ENCRYPTED_MESSAGE = 114,
+    ENCRYPTED_MESSAGE_RESPONSE = 115,
+    
     // 错误
     ERROR = 255
 };

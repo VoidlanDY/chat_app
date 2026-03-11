@@ -87,6 +87,14 @@ enum MessageType {
   heartbeat(100),
   heartbeatResponse(101),
 
+  // 端到端加密
+  keyUpload(110),
+  keyUploadResponse(111),
+  keyRequest(112),
+  keyResponse(113),
+  encryptedMessage(114),
+  encryptedMessageResponse(115),
+
   // 错误
   error(255);
 

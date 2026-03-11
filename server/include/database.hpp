@@ -94,6 +94,11 @@ public:
     bool create_new_bot_session(uint64_t user_id, std::string& new_conversation_id);
     bool get_user_bot_sessions(uint64_t user_id, std::vector<std::string>& session_ids);
     
+    // 端到端加密密钥相关
+    bool save_user_public_key(uint64_t user_id, const std::string& public_key);
+    bool get_user_public_key(uint64_t user_id, std::string& public_key);
+    bool delete_user_key(uint64_t user_id);
+    
 private:
     MYSQL* connection_;
     std::mutex mutex_;

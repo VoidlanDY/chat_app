@@ -45,6 +45,8 @@ dependencies:
   intl: ^0.18.1
   uuid: ^4.2.1
   crypto: ^3.0.3
+  pointycastle: ^3.7.3
+  convert: ^3.1.1
   
   # 多媒体
   video_player: ^2.8.1

@@ -93,6 +93,11 @@ private:
     void handle_media_upload(uint32_t sequence, const json& body);
     void handle_heartbeat(uint32_t sequence, const json& body);
     
+    // 端到端加密
+    void handle_key_upload(uint32_t sequence, const json& body);
+    void handle_key_request(uint32_t sequence, const json& body);
+    void handle_encrypted_message(uint32_t sequence, const json& body);
+    
 private:
     asio::io_context& io_context_;
     Socket socket_;

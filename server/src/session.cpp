@@ -243,6 +243,17 @@ void Session::handle_message(MessageType type, uint32_t sequence, const json& bo
             handle_heartbeat(sequence, body);
             break;
             
+        // 端到端加密
+        case MessageType::KEY_UPLOAD:
+            handle_key_upload(sequence, body);
+            break;
+        case MessageType::KEY_REQUEST:
+            handle_key_request(sequence, body);
+            break;
+        case MessageType::ENCRYPTED_MESSAGE:
+            handle_encrypted_message(sequence, body);
+            break;
+            
         default:
             send(Protocol::create_error(sequence, 400, "Unknown message type"));
             break;
@@ -1096,6 +1107,118 @@ void Session::handle_heartbeat(uint32_t sequence, const json& body) {
         ).count()}
     };
     send(Protocol::create_response(MessageType::HEARTBEAT_RESPONSE, sequence, response));
+}
+
+// ==================== 端到端加密处理器 ====================
+
+void Session::handle_key_upload(uint32_t sequence, const json& body) {
+    // 检查是否已认证
+    if (!authenticated_) {
+        send(Protocol::create_error(sequence, 401, "Not authenticated"));
+        return;
+    }
+    
+    std::string public_key = body.value("public_key", "");
+    if (public_key.empty()) {
+        send(Protocol::create_error(sequence, 400, "Public key is required"));
+        return;
+    }
+    
+    // 保存公钥
+    if (!database_->save_user_public_key(user_id_, public_key)) {
+        send(Protocol::create_error(sequence, 500, "Failed to save public key"));
+        return;
+    }
+    
+    json response = {
+        {"user_id", user_id_},
+        {"timestamp", std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+        ).count()}
+    };
+    send(Protocol::create_response(MessageType::KEY_UPLOAD_RESPONSE, sequence, response));
+}
+
+void Session::handle_key_request(uint32_t sequence, const json& body) {
+    // 检查是否已认证
+    if (!authenticated_) {
+        send(Protocol::create_error(sequence, 401, "Not authenticated"));
+        return;
+    }
+    
+    uint64_t target_user_id = body.value("user_id", 0ULL);
+    if (target_user_id == 0) {
+        send(Protocol::create_error(sequence, 400, "User ID is required"));
+        return;
+    }
+    
+    // 获取目标用户的公钥
+    std::string public_key;
+    if (!database_->get_user_public_key(target_user_id, public_key)) {
+        send(Protocol::create_error(sequence, 404, "Public key not found"));
+        return;
+    }
+    
+    json response = {
+        {"user_id", target_user_id},
+        {"public_key", public_key}
+    };
+    send(Protocol::create_response(MessageType::KEY_RESPONSE, sequence, response));
+}
+
+void Session::handle_encrypted_message(uint32_t sequence, const json& body) {
+    // 检查是否已认证
+    if (!authenticated_) {
+        send(Protocol::create_error(sequence, 401, "Not authenticated"));
+        return;
+    }
+    
+    uint64_t receiver_id = body.value("receiver_id", 0ULL);
+    std::string encrypted_key = body.value("encrypted_key", "");
+    std::string encrypted_content = body.value("encrypted_content", "");
+    std::string iv = body.value("iv", "");
+    int media_type = body.value("media_type", 0);
+    std::string media_url = body.value("media_url", "");
+    
+    if (receiver_id == 0 || encrypted_key.empty() || encrypted_content.empty()) {
+        send(Protocol::create_error(sequence, 400, "Invalid encrypted message"));
+        return;
+    }
+    
+    // 构建加密消息
+    Message message;
+    message.sender_id = user_id_;
+    message.receiver_id = receiver_id;
+    message.group_id = 0;
+    message.media_type = static_cast<MediaType>(media_type);
+    message.media_url = media_url;
+    message.status = MessageStatus::SENT;
+    message.created_at = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+    
+    // 将加密数据存储在 extra 字段中
+    json extra = {
+        {"encrypted", true},
+        {"encrypted_key", encrypted_key},
+        {"encrypted_content", encrypted_content},
+        {"iv", iv}
+    };
+    message.extra = extra.dump();
+    message.content = "[加密消息]";
+    
+    // 保存消息
+    database_->save_private_message(message);
+    
+    // 发送响应给发送者
+    json response = message.to_json();
+    send(Protocol::create_response(MessageType::ENCRYPTED_MESSAGE_RESPONSE, sequence, response));
+    
+    // 转发给接收者
+    if (server_) {
+        server_->send_to_user(receiver_id,
+            Protocol::serialize(MessageType::ENCRYPTED_MESSAGE, sequence, message.to_json()));
+    }
 }
 
 } // namespace chat

@@ -233,6 +233,20 @@ bool Database::init_tables() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     )";
     
+    // 用户公钥表（端到端加密）
+    const char* create_user_keys = R"(
+        CREATE TABLE IF NOT EXISTS user_keys (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+            public_key TEXT NOT NULL,
+            key_version INT UNSIGNED DEFAULT 1,
+            created_at BIGINT NOT NULL,
+            updated_at BIGINT NOT NULL,
+            INDEX idx_user_id (user_id),
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    )";
+    
     if (mysql_query(connection_, create_users) != 0) {
         std::cerr << "Failed to create users table: " << mysql_error(connection_) << std::endl;
         return false;
@@ -280,6 +294,12 @@ bool Database::init_tables() {
         return false;
     }
     std::cerr << "Created bot_conversations table" << std::endl;
+    
+    if (mysql_query(connection_, create_user_keys) != 0) {
+        std::cerr << "Failed to create user_keys table: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+    std::cerr << "Created user_keys table" << std::endl;
     
     return true;
 }
@@ -1482,14 +1502,244 @@ bool Database::get_user_bot_sessions(uint64_t user_id, std::vector<std::string>&
 
     
 
-    mysql_free_result(result);
+        mysql_free_result(result);
 
-    return true;
+    
 
-}
+        return true;
 
+    
 
+    }
 
+    
 
+    
 
-} // namespace chat
+    
+
+    // ==================== 端到端加密密钥相关实现 ====================
+
+    
+
+    
+
+    
+
+    bool Database::save_user_public_key(uint64_t user_id, const std::string& public_key) {
+
+    
+
+        std::lock_guard<std::mutex> lock(mutex_);
+
+    
+
+        
+
+    
+
+        int64_t now = get_current_timestamp();
+
+    
+
+        std::string escaped_key = escape_string(public_key);
+
+    
+
+        
+
+    
+
+        // 使用 INSERT ... ON DUPLICATE KEY UPDATE
+
+    
+
+        std::ostringstream sql;
+
+    
+
+        sql << "INSERT INTO user_keys (user_id, public_key, created_at, updated_at) VALUES ("
+
+    
+
+            << user_id << ", '" << escaped_key << "', " << now << ", " << now << ") "
+
+    
+
+            << "ON DUPLICATE KEY UPDATE public_key = '" << escaped_key 
+
+    
+
+            << "', updated_at = " << now << ", key_version = key_version + 1";
+
+    
+
+        
+
+    
+
+        if (mysql_query(connection_, sql.str().c_str()) != 0) {
+
+    
+
+            std::cerr << "Failed to save user public key: " << mysql_error(connection_) << std::endl;
+
+    
+
+            return false;
+
+    
+
+        }
+
+    
+
+        
+
+    
+
+        return true;
+
+    
+
+    }
+
+    
+
+    
+
+    
+
+    bool Database::get_user_public_key(uint64_t user_id, std::string& public_key) {
+
+    
+
+        std::lock_guard<std::mutex> lock(mutex_);
+
+    
+
+        
+
+    
+
+        std::ostringstream sql;
+
+    
+
+        sql << "SELECT public_key FROM user_keys WHERE user_id = " << user_id;
+
+    
+
+        
+
+    
+
+        if (mysql_query(connection_, sql.str().c_str()) != 0) {
+
+    
+
+            return false;
+
+    
+
+        }
+
+    
+
+        
+
+    
+
+        MYSQL_RES* result = mysql_store_result(connection_);
+
+    
+
+        if (!result) return false;
+
+    
+
+        
+
+    
+
+        MYSQL_ROW row = mysql_fetch_row(result);
+
+    
+
+        if (!row || !row[0]) {
+
+    
+
+            mysql_free_result(result);
+
+    
+
+            return false;
+
+    
+
+        }
+
+    
+
+        
+
+    
+
+        public_key = row[0];
+
+    
+
+        mysql_free_result(result);
+
+    
+
+        return true;
+
+    
+
+    }
+
+    
+
+    
+
+    
+
+    bool Database::delete_user_key(uint64_t user_id) {
+
+    
+
+        std::lock_guard<std::mutex> lock(mutex_);
+
+    
+
+        
+
+    
+
+        std::ostringstream sql;
+
+    
+
+        sql << "DELETE FROM user_keys WHERE user_id = " << user_id;
+
+    
+
+        
+
+    
+
+        return mysql_query(connection_, sql.str().c_str()) == 0;
+
+    
+
+    }
+
+    
+
+    
+
+    
+
+    } // namespace chat
