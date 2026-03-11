@@ -25,10 +25,10 @@ echo ""
 mkdir -p "$MEDIA_DIR"
 echo -e "${GREEN}✓ 媒体目录已创建: $MEDIA_DIR${NC}"
 
-# 启动媒体文件服务器
+# 启动媒体文件服务器 (C++ 版本)
 echo -e "${YELLOW}启动媒体文件服务器 (端口 8889)...${NC}"
-cd "$SERVER_DIR"
-python3 media_server.py &
+cd "$SERVER_DIR/build"
+./media_server -d "$MEDIA_DIR" &
 MEDIA_PID=$!
 echo -e "${GREEN}✓ 媒体服务器已启动 (PID: $MEDIA_PID)${NC}"
 

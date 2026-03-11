@@ -402,10 +402,16 @@ class _ChatScreenState extends State<ChatScreen> {
       return const Icon(Icons.broken_image, size: 100);
     }
     
+    // 替换localhost为实际地址
+    String fixedUrl = url;
+    if (url.contains('localhost')) {
+      fixedUrl = url.replaceFirst(RegExp(r'http://localhost:\d+'), 'http://10.0.2.2:8889');
+    }
+    
     // 检查是否是网络URL
-    if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (fixedUrl.startsWith('http://') || fixedUrl.startsWith('https://')) {
       return CachedNetworkImage(
-        imageUrl: url,
+        imageUrl: fixedUrl,
         width: 200,
         fit: BoxFit.cover,
         placeholder: (context, url) => Container(
@@ -416,7 +422,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: CircularProgressIndicator(),
           ),
         ),
-        errorWidget: (context, url, error) => Container(
+        errorWidget: (context, fixedUrl, error) => Container(
           width: 200,
           height: 150,
           color: Colors.grey[200],
@@ -836,10 +842,10 @@ class _ImagePreviewScreen extends StatelessWidget {
           maxScale: 4.0,
           child: url.startsWith('http://') || url.startsWith('https://')
               ? CachedNetworkImage(
-                  imageUrl: url,
+                  imageUrl: fixedUrl,
                   fit: BoxFit.contain,
                   placeholder: (context, url) => const CircularProgressIndicator(),
-                  errorWidget: (context, url, error) => const Icon(
+                  errorWidget: (context, fixedUrl, error) => const Icon(
                     Icons.broken_image,
                     color: Colors.white,
                     size: 100,

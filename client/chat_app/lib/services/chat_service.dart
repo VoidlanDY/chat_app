@@ -78,6 +78,21 @@ class ChatService extends ChangeNotifier {
   
   int get currentUserId => _currentUser?.userId ?? 0;
 
+  // 媒体服务器地址（用于替换服务器返回的localhost URL）
+  String _mediaServerHost = "10.0.2.2:8889"; // Android模拟器访问宿主机
+  
+  void setMediaServerHost(String host) {
+    _mediaServerHost = host;
+  }
+  
+  // 替换URL中的localhost为实际的媒体服务器地址
+  String _fixMediaUrl(String url) {
+    if (url.contains("localhost")) {
+      return url.replaceFirst(RegExp(r"http://localhost:\d+"), "http://$_mediaServerHost");
+    }
+    return url;
+  }
+
   // 重连状态
   bool _isReconnecting = false;
   bool _reconnectLoginSuccess = false;
@@ -1119,7 +1134,9 @@ class ChatService extends ChangeNotifier {
       final data = body['data'] as Map<String, dynamic>?;
       if (data != null) {
         _uploadedFileId = data['file_id'] as int?;
-        _uploadedMediaUrl = data['url'] as String?;
+        // 替换localhost为实际的媒体服务器地址
+        final rawUrl = data['url'] as String?;
+        _uploadedMediaUrl = rawUrl != null ? _fixMediaUrl(rawUrl) : null;
         _uploadError = null;
       }
     } else {

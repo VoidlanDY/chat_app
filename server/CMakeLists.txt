@@ -61,8 +61,23 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     )
 endif()
 
+# 媒体服务器可执行文件
+pkg_check_modules(MHD REQUIRED libmicrohttpd)
+
+add_executable(media_server
+    src/media_server.cpp
+)
+
+target_include_directories(media_server PRIVATE
+    ${MHD_INCLUDE_DIRS}
+)
+
+target_link_libraries(media_server PRIVATE
+    ${MHD_LIBRARIES}
+)
+
 # 安装
-install(TARGETS chat_server DESTINATION bin)
+install(TARGETS chat_server media_server DESTINATION bin)
 
 # 打包
 set(CPACK_PACKAGE_NAME "chat-server")
