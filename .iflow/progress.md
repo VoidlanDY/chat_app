@@ -395,3 +395,25 @@
   - `client/chat_app/lib/services/network_service.dart` - 心跳和重连逻辑
   - `client/chat_app/lib/services/chat_service.dart` - 自动登录集成
   - `test_heartbeat_reconnect.py` - 测试脚本
+
+## [2026-03-11] Android 签名配置 + DeepSeek AI bot 改进
+- 实现内容:
+  - Android 统一签名配置
+    - 创建 release 签名密钥 chat-app-release.jks
+    - 配置 key.properties 存储签名信息
+    - 更新 build.gradle 使用统一签名配置
+    - 更新 .gitignore 排除敏感签名文件
+  - DeepSeek AI bot 使用跨平台 HTTP 库
+    - 使用 libcurl 替代 curl 命令行工具
+    - 实现跨平台 HTTPS 请求支持
+    - 更新 CMakeLists.txt 添加 libcurl 依赖
+    - 更新 API Key
+- 测试结果: AI bot 5/5 测试通过
+- 相关文件:
+  - `client/chat_app/android/app/build.gradle` - 签名配置
+  - `client/chat_app/android/key.properties` - 签名信息 (不提交)
+  - `client/chat_app/android/app/chat-app-release.jks` - 签名密钥 (不提交)
+  - `server/CMakeLists.txt` - 添加 libcurl
+  - `server/src/deepseek_client.cpp` - 使用 libcurl 实现 HTTP 请求
+  - `server/include/deepseek_client.hpp` - 移除 openssl 依赖
+  - `.gitignore` - 排除签名敏感文件
