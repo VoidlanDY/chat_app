@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+env:
+  # 标记是否有签名配置
+  HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,25 +40,17 @@ jobs:
       run: flutter pub get
     
     - name: Decode keystore
-      if: ${{ env.KEYSTORE_BASE64 != '' }}
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      if: env.HAS_KEYSTORE == 'true'
       run: |
-        echo $KEYSTORE_BASE64 | base64 -d > client/chat_app/android/app/chat-app-release.jks
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > client/chat_app/android/app/chat-app-release.jks
     
     - name: Create key.properties
-      if: ${{ env.KEYSTORE_PASSWORD != '' }}
-      env:
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      if: env.HAS_KEYSTORE == 'true'
       run: |
-        cat > client/chat_app/android/key.properties << EOF
-        storePassword=$KEYSTORE_PASSWORD
-        keyPassword=$KEY_PASSWORD
-        keyAlias=$KEY_ALIAS
-        storeFile=chat-app-release.jks
-        EOF
+        echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > client/chat_app/android/key.properties
+        echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> client/chat_app/android/key.properties
+        echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> client/chat_app/android/key.properties
+        echo "storeFile=chat-app-release.jks" >> client/chat_app/android/key.properties
     
     - name: Build APK
       working-directory: client/chat_app
