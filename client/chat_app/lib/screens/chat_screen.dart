@@ -56,8 +56,10 @@ class _ChatScreenState extends State<ChatScreen> {
   
   /// 加载群成员列表
   Future<void> _loadGroupMembers() async {
+    if (!widget.isGroup) return;
+    
     final chatService = context.read<ChatService>();
-    final members = await chatService.getGroupMembers(widget.peerId);
+    final members = await chatService.fetchGroupMembers(widget.peerId);
     if (mounted) {
       setState(() {
         _groupMembers = members;
