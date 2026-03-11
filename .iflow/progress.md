@@ -417,3 +417,32 @@
   - `server/src/deepseek_client.cpp` - 使用 libcurl 实现 HTTP 请求
   - `server/include/deepseek_client.hpp` - 移除 openssl 依赖
   - `.gitignore` - 排除签名敏感文件
+
+## [2026-03-11] Bug 修复 - 消息通知和机器人自动接受好友请求
+- 实现内容:
+  - 服务器端 BotManager 自动接受好友请求后通知用户
+    - 在 handle_friend_request 中发送 FRIEND_ACCEPT 通知
+  - 客户端添加本地通知功能
+    - 添加 flutter_local_notifications 包
+    - 创建 NotificationService 管理通知
+    - ChatService 在收到消息时发送通知
+    - 添加好友请求通知功能
+  - 客户端聊天界面状态管理
+    - ChatScreen 设置当前聊天界面状态
+    - 避免在当前聊天页面显示重复通知
+  - 客户端添加 FRIEND_ACCEPT 通知处理
+    - 对方接受好友请求时刷新好友列表
+  - Android 添加通知权限
+    - POST_NOTIFICATIONS 权限 (Android 13+)
+    - RECEIVE_BOOT_COMPLETED 权限
+- 测试结果: 通过
+  - 机器人自动接受好友请求: ✓
+  - 好友请求接受通知: ✓
+- 相关文件:
+  - `server/src/bot_manager.cpp` - 通知用户好友请求已被接受
+  - `client/chat_app/lib/services/notification_service.dart` - 新增通知服务
+  - `client/chat_app/lib/services/chat_service.dart` - 集成通知服务
+  - `client/chat_app/lib/screens/chat_screen.dart` - 聊天界面状态管理
+  - `client/chat_app/lib/main.dart` - 初始化通知服务
+  - `client/chat_app/pubspec.yaml` - 添加依赖
+  - `client/chat_app/android/app/src/main/AndroidManifest.xml` - 添加权限
