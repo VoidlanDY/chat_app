@@ -830,6 +830,12 @@ class _ImagePreviewScreen extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
+    // 替换localhost为实际地址
+    String fixedUrl = url;
+    if (url.contains('localhost')) {
+      fixedUrl = url.replaceFirst(RegExp(r'http://localhost:\d+'), 'http://10.0.2.2:8889');
+    }
+    
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -840,12 +846,12 @@ class _ImagePreviewScreen extends StatelessWidget {
         child: InteractiveViewer(
           minScale: 0.5,
           maxScale: 4.0,
-          child: url.startsWith('http://') || url.startsWith('https://')
+          child: fixedUrl.startsWith('http://') || fixedUrl.startsWith('https://')
               ? CachedNetworkImage(
                   imageUrl: fixedUrl,
                   fit: BoxFit.contain,
                   placeholder: (context, url) => const CircularProgressIndicator(),
-                  errorWidget: (context, fixedUrl, error) => const Icon(
+                  errorWidget: (context, url, error) => const Icon(
                     Icons.broken_image,
                     color: Colors.white,
                     size: 100,
