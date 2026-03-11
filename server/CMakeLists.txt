@@ -10,6 +10,7 @@ find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MYSQL REQUIRED mysqlclient)
+pkg_check_modules(CURL REQUIRED libcurl)
 
 # 使用系统安装的 nlohmann-json 和 asio
 find_package(nlohmann_json 3.2.0 REQUIRED)
@@ -33,6 +34,7 @@ target_include_directories(chat_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${ASIO_INCLUDE_DIR}
     ${MYSQL_INCLUDE_DIRS}
+    ${CURL_INCLUDE_DIRS}
 )
 
 target_link_libraries(chat_server PRIVATE
@@ -40,6 +42,7 @@ target_link_libraries(chat_server PRIVATE
     OpenSSL::SSL
     OpenSSL::Crypto
     ${MYSQL_LIBRARIES}
+    ${CURL_LIBRARIES}
     nlohmann_json::nlohmann_json
 )
 

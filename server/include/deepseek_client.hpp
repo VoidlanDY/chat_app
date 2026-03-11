@@ -7,8 +7,8 @@
 #include <functional>
 #include <mutex>
 #include <chrono>
+#include <unordered_map>
 #include <asio.hpp>
-#include <openssl/ssl.h>
 
 namespace chat {
 

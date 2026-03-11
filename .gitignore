@@ -20,3 +20,11 @@ client/chat_app/build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Android signing (敏感文件，不提交)
+client/chat_app/android/key.properties
+client/chat_app/android/app/*.jks
+client/chat_app/android/app/*.keystore
+
+# Server PID files
+server/*.pid
