@@ -6,6 +6,14 @@ import 'package:pointycastle/export.dart';
 import 'package:convert/convert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// RSA 密钥对类（pointycastle 没有提供此类型）
+class RSAKeyPair {
+  final RSAPublicKey publicKey;
+  final RSAPrivateKey privateKey;
+  
+  RSAKeyPair(this.publicKey, this.privateKey);
+}
+
 /// 端到端加密服务
 /// 使用 RSA-2048 进行密钥交换，AES-256-GCM 进行消息加密
 class E2EEService {
