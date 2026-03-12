@@ -670,7 +670,8 @@ class _ChatScreenState extends State<ChatScreen> {
   
   /// 撤回消息
   Future<void> _recallMessage(Message message) async {
-    final success = await _chatService.recallMessage(
+    final chatService = context.read<ChatService>();
+    final success = await chatService.recallMessage(
       message.messageId,
       isGroup: widget.isGroup,
       groupId: widget.isGroup ? widget.peerId : null,
@@ -683,7 +684,7 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_chatService.recallError ?? '撤回失败')),
+          SnackBar(content: Text(chatService.recallError ?? '撤回失败')),
         );
       }
     }
