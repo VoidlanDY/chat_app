@@ -113,6 +113,7 @@ private:
     bool connect();
     void disconnect();
     bool init_tables();
+    bool ensure_connection();  // 检查并恢复连接
     std::string escape_string(const std::string& str);
     uint64_t get_last_insert_id();
     int64_t get_current_timestamp();

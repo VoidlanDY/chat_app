@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/chat_service.dart';
+import '../services/storage_service.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
 
@@ -23,6 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _init() async {
     final appProvider = context.read<AppProvider>();
+    final storage = StorageService();
     
     try {
       // 初始化应用，设置超时
@@ -41,15 +43,66 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
       
       final chatService = context.read<ChatService>();
+      
+      // 检查是否已登录
       if (chatService.isAuthenticated) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainScreen()),
         );
-      } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+        return;
       }
+      
+      // 尝试自动登录
+      if (storage.rememberMe && 
+          storage.savedUsername != null && 
+          storage.savedPassword != null) {
+        
+        setState(() => _status = '正在自动登录...');
+        
+        debugPrint('尝试自动登录: ${storage.savedUsername}');
+        
+        // 确保已连接服务器
+        if (!chatService.isConnected) {
+          await chatService.connect(storage.serverHost, storage.serverPort).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              debugPrint('连接服务器超时');
+              return false;
+            },
+          );
+        }
+        
+        if (chatService.isConnected) {
+          // 尝试登录
+          final success = await chatService.login(
+            storage.savedUsername!,
+            storage.savedPassword!,
+          ).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              debugPrint('登录超时');
+              return false;
+            },
+          );
+          
+          if (success && mounted) {
+            debugPrint('自动登录成功');
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const MainScreen()),
+            );
+            return;
+          } else {
+            debugPrint('自动登录失败');
+          }
+        }
+      }
+      
+      if (!mounted) return;
+      
+      // 自动登录失败或未启用，跳转到登录页面
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
     } catch (e) {
       debugPrint('Init error: $e');
       
@@ -125,6 +178,17 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             
             const SizedBox(height: 48),
+            
+            // Status text
+            Text(
+              _status,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
             
             // Loading indicator
             const CircularProgressIndicator(

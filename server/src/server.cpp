@@ -163,7 +163,10 @@ void Server::broadcast_to_group(uint64_t group_id, const std::vector<uint8_t>& d
 void Server::send_to_user(uint64_t user_id, const std::vector<uint8_t>& data) {
     auto session = get_session(user_id);
     if (session) {
+        std::cout << "Sending message to online user: " << user_id << std::endl;
         session->send(data);
+    } else {
+        std::cout << "User " << user_id << " is not online, message not delivered in real-time" << std::endl;
     }
 }
 

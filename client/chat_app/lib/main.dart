@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'services/chat_service.dart';
 import 'services/storage_service.dart';
 import 'services/message_database.dart';
 import 'services/notification_service.dart';
+import 'services/fcm_service.dart';
 import 'screens/splash_screen.dart';
 import 'providers/app_provider.dart';
 
@@ -16,8 +18,19 @@ void main() async {
   // 初始化本地消息数据库
   await MessageDatabase().init();
   
-  // 初始化通知服务
+  // 初始化本地通知服务
   await NotificationService().init();
+  
+  // 初始化 Firebase (如果可用)
+  try {
+    await Firebase.initializeApp();
+    // 初始化 FCM
+    await FCMService().init();
+    debugPrint('Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('Firebase not configured: $e');
+    // Firebase 未配置时使用本地通知
+  }
   
   runApp(const ChatApp());
 }

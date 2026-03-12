@@ -79,6 +79,41 @@ bool Database::connect() {
     return init_tables();
 }
 
+bool Database::ensure_connection() {
+    if (!connection_) {
+        return false;
+    }
+    
+    // 使用 mysql_ping 检查连接状态，如果断开会自动重连（因为设置了 MYSQL_OPT_RECONNECT）
+    if (mysql_ping(connection_) != 0) {
+        std::cerr << "MySQL connection lost, attempting to reconnect..." << std::endl;
+        // 关闭旧连接并重新连接
+        mysql_close(connection_);
+        connection_ = mysql_init(nullptr);
+        if (!connection_) {
+            std::cerr << "Failed to reinitialize MySQL connection" << std::endl;
+            connected_ = false;
+            return false;
+        }
+        
+        // 重新设置选项
+        bool reconnect = true;
+        mysql_options(connection_, MYSQL_OPT_RECONNECT, &reconnect);
+        mysql_options(connection_, MYSQL_SET_CHARSET_NAME, "utf8mb4");
+        
+        unsigned int timeout = 10;
+        mysql_options(connection_, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
+        mysql_options(connection_, MYSQL_OPT_READ_TIMEOUT, &timeout);
+        mysql_options(connection_, MYSQL_OPT_WRITE_TIMEOUT, &timeout);
+        
+        // 重新连接
+        return connect();
+    }
+    
+    connected_ = true;
+    return true;
+}
+
 void Database::disconnect() {
     if (connection_) {
         mysql_close(connection_);
@@ -330,6 +365,12 @@ bool Database::create_user(const std::string& username, const std::string& passw
                            const std::string& nickname, uint64_t& user_id) {
     std::lock_guard<std::mutex> lock(mutex_);
     
+    // 检查连接状态
+    if (!ensure_connection()) {
+        std::cerr << "Database connection failed in create_user" << std::endl;
+        return false;
+    }
+    
     int64_t now = get_current_timestamp();
     std::string escaped_username = escape_string(username);
     std::string escaped_password = escape_string(password);
@@ -341,6 +382,7 @@ bool Database::create_user(const std::string& username, const std::string& passw
         << "', " << now << ", " << now << ")";
     
     if (mysql_query(connection_, sql.str().c_str()) != 0) {
+        std::cerr << "MySQL query failed in create_user: " << mysql_error(connection_) << std::endl;
         return false;
     }
     
@@ -351,11 +393,18 @@ bool Database::create_user(const std::string& username, const std::string& passw
 bool Database::get_user_by_id(uint64_t user_id, UserInfo& user) {
     std::lock_guard<std::mutex> lock(mutex_);
     
+    // 检查连接状态
+    if (!ensure_connection()) {
+        std::cerr << "Database connection failed in get_user_by_id" << std::endl;
+        return false;
+    }
+    
     std::ostringstream sql;
     sql << "SELECT user_id, username, nickname, avatar_url, signature, "
         << "online_status, created_at, updated_at FROM users WHERE user_id = " << user_id;
     
     if (mysql_query(connection_, sql.str().c_str()) != 0) {
+        std::cerr << "MySQL query failed in get_user_by_id: " << mysql_error(connection_) << std::endl;
         return false;
     }
     
@@ -420,6 +469,12 @@ bool Database::verify_user(const std::string& username, const std::string& passw
                            uint64_t& user_id) {
     std::lock_guard<std::mutex> lock(mutex_);
     
+    // 检查连接状态
+    if (!ensure_connection()) {
+        std::cerr << "Database connection failed in verify_user" << std::endl;
+        return false;
+    }
+    
     std::string escaped_username = escape_string(username);
     std::string escaped_password = escape_string(password);
     
@@ -428,6 +483,7 @@ bool Database::verify_user(const std::string& username, const std::string& passw
         << "' AND password = '" << escaped_password << "'";
     
     if (mysql_query(connection_, sql.str().c_str()) != 0) {
+        std::cerr << "MySQL query failed in verify_user: " << mysql_error(connection_) << std::endl;
         return false;
     }
     
