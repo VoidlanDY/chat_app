@@ -35,6 +35,10 @@ bool Server::start() {
     
     running_ = true;
     
+    // 创建 work guard 防止 io_context 在没有任务时停止
+    work_guard_ = std::make_unique<asio::executor_work_guard<IOContext::executor_type>>(
+        io_context_.get_executor());
+    
     // 设置信号处理
     signals_.async_wait([this](asio::error_code, int) {
         stop();
@@ -67,6 +71,9 @@ void Server::stop() {
     }
     
     running_ = false;
+    
+    // 先重置 work_guard，允许 io_context 停止
+    work_guard_.reset();
     
     io_context_.stop();
     

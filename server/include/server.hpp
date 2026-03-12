@@ -97,6 +97,9 @@ private:
     Acceptor acceptor_;
     SignalSet signals_;
     
+    // Work guard - 防止 io_context 在没有任务时停止
+    std::unique_ptr<asio::executor_work_guard<IOContext::executor_type>> work_guard_;
+    
     std::map<uint64_t, Session::ptr> sessions_;
     std::mutex sessions_mutex_;
     

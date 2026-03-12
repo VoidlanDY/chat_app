@@ -59,31 +59,33 @@ class NotificationService {
     final android = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (android == null) return;
 
-    // 消息通知渠道
+    // 消息通知渠道 - 小米手机需要最高优先级
     final messagesChannel = AndroidNotificationChannel(
       'messages',
       '消息通知',
       description: '接收新消息的通知',
-      importance: Importance.high,
+      importance: Importance.max,  // 最高优先级
       playSound: true,
       enableVibration: true,
       enableLights: true,
       ledColor: Colors.blue,
+      showBadge: true,
     );
 
-    // 好友请求通知渠道
+    // 好友请求通知渠道 - 小米手机需要最高优先级
     final friendRequestsChannel = AndroidNotificationChannel(
       'friend_requests',
       '好友请求',
       description: '好友请求通知',
-      importance: Importance.high,
+      importance: Importance.max,  // 最高优先级
       playSound: true,
       enableVibration: true,
+      showBadge: true,
     );
 
     await android.createNotificationChannel(messagesChannel);
     await android.createNotificationChannel(friendRequestsChannel);
-    debugPrint('Notification channels created');
+    debugPrint('Notification channels created with max importance');
   }
 
   /// 请求通知权限
@@ -142,12 +144,14 @@ class NotificationService {
       return;
     }
 
+    // 小米手机需要最高优先级和特殊配置
     final androidDetails = AndroidNotificationDetails(
       'messages',
       '消息通知',
       channelDescription: '接收新消息的通知',
-      importance: Importance.high,
-      priority: Priority.high,
+      // 最高优先级确保小米手机也能显示
+      importance: Importance.max,
+      priority: Priority.max,
       showWhen: true,
       enableVibration: true,
       enableLights: true,
@@ -160,6 +164,14 @@ class NotificationService {
       icon: '@mipmap/ic_launcher',
       // 通知样式
       styleInformation: BigTextStyleInformation(body),
+      // 小米手机需要这些设置
+      channelShowBadge: true,
+      // 确保在锁屏和通知栏显示
+      visibility: NotificationVisibility.public,
+      // 设置通知类别为消息
+      category: AndroidNotificationCategory.message,
+      // 设置ticker确保通知能够显示
+      ticker: '$title: $body',
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -203,17 +215,22 @@ class NotificationService {
         ? '$nickname ($username) 请求添加你为好友'
         : '$username 请求添加你为好友';
 
+    // 小米手机需要最高优先级和特殊配置
     final androidDetails = AndroidNotificationDetails(
       'friend_requests',
       '好友请求',
       channelDescription: '好友请求通知',
-      importance: Importance.high,
-      priority: Priority.high,
+      importance: Importance.max,
+      priority: Priority.max,
       showWhen: true,
       playSound: true,
       enableVibration: true,
       autoCancel: true,
       icon: '@mipmap/ic_launcher',
+      channelShowBadge: true,
+      visibility: NotificationVisibility.public,
+      category: AndroidNotificationCategory.message,
+      ticker: '$title: $body',
     );
 
     const iosDetails = DarwinNotificationDetails(
