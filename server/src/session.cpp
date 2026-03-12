@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <ctime>
 #include <iomanip>
+#include <cstdlib>
 
 namespace chat {
 
@@ -1035,7 +1036,9 @@ void Session::handle_media_upload(uint32_t sequence, const json& body) {
     }
     
     // 创建媒体文件目录
-    std::string media_dir = "media";
+    // 从环境变量获取媒体目录，默认为 ../media（相对于 build 目录）
+    const char* env_media_dir = std::getenv("MEDIA_DIR");
+    std::string media_dir = env_media_dir ? env_media_dir : "../media";
     mkdir(media_dir.c_str(), 0755);
     
     // 生成年月子目录
