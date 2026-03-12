@@ -25,27 +25,21 @@ void main() async {
     debugPrint('初始化基础服务错误: $e');
   }
   
-  // 根据设置选择推送模式
-  final storage = StorageService();
-  final useFCM = storage.useFCMPush;
-  
-  if (useFCM) {
-    // FCM 模式 (国外)
-    try {
+  // 后台服务初始化 (不阻塞主流程)
+  try {
+    final storage = StorageService();
+    final useFCM = storage.useFCMPush;
+    
+    if (useFCM) {
+      // FCM 模式 (国外)
       await FcmService().init();
       BackgroundService().setServiceType(BackgroundServiceType.fcm);
-    } catch (e) {
-      debugPrint('FCM 初始化错误: $e');
-    }
-  } else {
-    // 本地后台服务模式 (国内)
-    try {
+    } else {
+      // 本地后台服务模式 (国内)
       await BackgroundService().init(type: BackgroundServiceType.local);
-      // 自动启动后台服务
-      await BackgroundService().startService();
-    } catch (e) {
-      debugPrint('后台服务初始化错误: $e');
     }
+  } catch (e) {
+    debugPrint('后台服务初始化错误: $e');
   }
   
   runApp(const ChatApp());
