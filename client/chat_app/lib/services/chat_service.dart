@@ -891,20 +891,145 @@ class ChatService extends ChangeNotifier {
       c.groupId > 0 ? c.groupId == groupId : c.peerId == peerId
     );
     
+    Conversation? existingConv;
+    int unreadCount = 0;
+    bool isPinned = false;
+    bool isMuted = false;
+    
     if (index >= 0) {
-      // 更新现有会话
+      // 更新现有会话，保留原有属性
+      existingConv = _conversations[index];
+      unreadCount = existingConv.unreadCount;
+      isPinned = existingConv.isPinned;
+      isMuted = existingConv.isMuted;
       _conversations.removeAt(index);
     }
     
-    // 创建新会话并插入到开头
-    _conversations.insert(0, Conversation(
+    // 如果是收到的消息，增加未读数（不在当前聊天界面时）
+    if (message.senderId != currentUserId) {
+      final currentChatPeerId = _currentChatPeerId;
+      final isCurrentChat = groupId > 0 
+          ? currentChatPeerId == groupId 
+          : currentChatPeerId == peerId;
+      
+      if (!isCurrentChat) {
+        unreadCount++;
+      }
+    }
+    
+    // 创建新会话并插入到合适位置（置顶的在前面）
+    final newConv = Conversation(
       peerId: peerId,
       groupId: groupId,
       peer: _users[peerId],
       group: groupId > 0 ? _groups[groupId] : null,
       lastMessage: message,
-      unreadCount: message.senderId != currentUserId ? 1 : 0,
-    ));
+      unreadCount: unreadCount,
+      isPinned: isPinned,
+      isMuted: isMuted,
+    );
+    
+    // 置顶的会话放在前面
+    if (isPinned) {
+      final pinnedCount = _conversations.where((c) => c.isPinned).length;
+      _conversations.insert(pinnedCount, newConv);
+    } else {
+      _conversations.insert(0, newConv);
+    }
+    
+    // 如果原来是置顶的，重新排序
+    if (isPinned) {
+      _sortConversations();
+    }
+  }
+  
+  /// 排序会话列表（置顶在前，其他按时间排序）
+  void _sortConversations() {
+    _conversations.sort((a, b) {
+      // 置顶的在前
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
+      // 按最后消息时间排序
+      final aTime = a.lastMessage?.createdAt ?? 0;
+      final bTime = b.lastMessage?.createdAt ?? 0;
+      return bTime.compareTo(aTime);
+    });
+  }
+  
+  /// 切换会话置顶状态
+  void toggleConversationPin(int peerId, {bool isGroup = false}) {
+    final index = _conversations.indexWhere((c) => 
+      isGroup ? c.groupId == peerId : c.peerId == peerId
+    );
+    
+    if (index >= 0) {
+      final conv = _conversations[index];
+      _conversations[index] = Conversation(
+        peerId: conv.peerId,
+        groupId: conv.groupId,
+        peer: conv.peer,
+        group: conv.group,
+        lastMessage: conv.lastMessage,
+        unreadCount: conv.unreadCount,
+        isPinned: !conv.isPinned,
+        isMuted: conv.isMuted,
+      );
+      _sortConversations();
+      notifyListeners();
+    }
+  }
+  
+  /// 切换会话免打扰状态
+  void toggleConversationMute(int peerId, {bool isGroup = false}) {
+    final index = _conversations.indexWhere((c) => 
+      isGroup ? c.groupId == peerId : c.peerId == peerId
+    );
+    
+    if (index >= 0) {
+      final conv = _conversations[index];
+      _conversations[index] = Conversation(
+        peerId: conv.peerId,
+        groupId: conv.groupId,
+        peer: conv.peer,
+        group: conv.group,
+        lastMessage: conv.lastMessage,
+        unreadCount: conv.unreadCount,
+        isPinned: conv.isPinned,
+        isMuted: !conv.isMuted,
+      );
+      notifyListeners();
+    }
+  }
+  
+  /// 标记会话为已读
+  void markConversationRead(int peerId, {bool isGroup = false}) {
+    final index = _conversations.indexWhere((c) => 
+      isGroup ? c.groupId == peerId : c.peerId == peerId
+    );
+    
+    if (index >= 0) {
+      final conv = _conversations[index];
+      _conversations[index] = Conversation(
+        peerId: conv.peerId,
+        groupId: conv.groupId,
+        peer: conv.peer,
+        group: conv.group,
+        lastMessage: conv.lastMessage,
+        unreadCount: 0,
+        isPinned: conv.isPinned,
+        isMuted: conv.isMuted,
+      );
+      notifyListeners();
+    }
+  }
+  
+  /// 删除会话
+  void deleteConversation(int peerId, {bool isGroup = false}) {
+    _conversations.removeWhere((c) => 
+      isGroup ? c.groupId == peerId : c.peerId == peerId
+    );
+    notifyListeners();
   }
 
   /// 搜索用户
