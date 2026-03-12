@@ -39,10 +39,11 @@ class NotificationService {
         onDidReceiveNotificationResponse: _onNotificationTapped,
       );
 
-      // 非阻塞请求权限（不等待结果）
-      _requestPermissions().catchError((e) {
-        debugPrint('Permission request error: $e');
-      });
+      // 创建通知渠道 (Android 8.0+)
+      await _createNotificationChannels();
+
+      // 请求权限
+      await _requestPermissions();
 
       _initialized = true;
       debugPrint('NotificationService initialized');
@@ -53,21 +54,68 @@ class NotificationService {
     }
   }
 
+  /// 创建通知渠道
+  Future<void> _createNotificationChannels() async {
+    final android = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return;
+
+    // 消息通知渠道
+    final messagesChannel = AndroidNotificationChannel(
+      'messages',
+      '消息通知',
+      description: '接收新消息的通知',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+      enableLights: true,
+      ledColor: Colors.blue,
+    );
+
+    // 好友请求通知渠道
+    final friendRequestsChannel = AndroidNotificationChannel(
+      'friend_requests',
+      '好友请求',
+      description: '好友请求通知',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    await android.createNotificationChannel(messagesChannel);
+    await android.createNotificationChannel(friendRequestsChannel);
+    debugPrint('Notification channels created');
+  }
+
   /// 请求通知权限
-  Future<void> _requestPermissions() async {
+  Future<bool> _requestPermissions() async {
+    bool granted = false;
+    
     final android = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (android != null) {
-      await android.requestNotificationsPermission();
+      granted = await android.requestNotificationsPermission() ?? false;
+      debugPrint('Android notification permission: $granted');
     }
 
     final ios = _notifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
     if (ios != null) {
-      await ios.requestPermissions(
+      granted = await ios.requestPermissions(
         alert: true,
         badge: true,
         sound: true,
-      );
+      ) ?? false;
+      debugPrint('iOS notification permission: $granted');
     }
+
+    return granted;
+  }
+
+  /// 检查通知权限
+  Future<bool> hasPermission() async {
+    final android = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      return await android.areNotificationsEnabled() ?? false;
+    }
+    return true;
   }
 
   /// 通知点击回调
@@ -87,6 +135,13 @@ class NotificationService {
       await init();
     }
 
+    // 检查权限
+    final hasPer = await hasPermission();
+    if (!hasPer) {
+      debugPrint('Notification permission not granted');
+      return;
+    }
+
     final androidDetails = AndroidNotificationDetails(
       'messages',
       '消息通知',
@@ -97,12 +152,21 @@ class NotificationService {
       enableVibration: true,
       enableLights: true,
       ledColor: Colors.blue,
+      playSound: true,
+      // 前台通知设置
+      ongoing: false,
+      autoCancel: true,
+      // 设置大图标
+      icon: '@mipmap/ic_launcher',
+      // 通知样式
+      styleInformation: BigTextStyleInformation(body),
     );
 
     const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
     );
 
     final notificationDetails = NotificationDetails(
@@ -110,13 +174,18 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _notifications.show(
-      id,
-      title,
-      body,
-      notificationDetails,
-      payload: payload,
-    );
+    try {
+      await _notifications.show(
+        id,
+        title,
+        body,
+        notificationDetails,
+        payload: payload,
+      );
+      debugPrint('Notification shown: $title - $body');
+    } catch (e) {
+      debugPrint('Failed to show notification: $e');
+    }
   }
 
   /// 显示好友请求通知
@@ -125,6 +194,10 @@ class NotificationService {
     required String username,
     String? nickname,
   }) async {
+    if (!_initialized) {
+      await init();
+    }
+
     final title = '好友请求';
     final body = nickname != null && nickname.isNotEmpty
         ? '$nickname ($username) 请求添加你为好友'
@@ -137,12 +210,17 @@ class NotificationService {
       importance: Importance.high,
       priority: Priority.high,
       showWhen: true,
+      playSound: true,
+      enableVibration: true,
+      autoCancel: true,
+      icon: '@mipmap/ic_launcher',
     );
 
     const iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
     );
 
     final notificationDetails = NotificationDetails(
@@ -150,13 +228,18 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _notifications.show(
-      id,
-      title,
-      body,
-      notificationDetails,
-      payload: 'friend_request',
-    );
+    try {
+      await _notifications.show(
+        id,
+        title,
+        body,
+        notificationDetails,
+        payload: 'friend_request',
+      );
+      debugPrint('Friend request notification shown: $body');
+    } catch (e) {
+      debugPrint('Failed to show friend request notification: $e');
+    }
   }
 
   /// 取消指定通知
