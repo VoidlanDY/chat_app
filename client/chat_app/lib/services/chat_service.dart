@@ -433,7 +433,12 @@ class ChatService extends ChangeNotifier {
 
   /// 处理私聊消息
   void _handlePrivateMessage(Map<String, dynamic> body) {
+    debugPrint('========== _handlePrivateMessage received ==========');
+    debugPrint('Message body: $body');
+    
     final message = Message.fromJson(body);
+    debugPrint('Message from: ${message.senderId}, to: ${message.receiverId}, currentUserId: $currentUserId');
+    
     final key = message.groupId > 0 ? -message.groupId : 
                  (message.senderId == currentUserId ? message.receiverId : message.senderId);
     
@@ -450,6 +455,8 @@ class ChatService extends ChangeNotifier {
     // 发送通知（如果不在当前聊天界面且不是自己发的消息）
     if (message.senderId != currentUserId) {
       final peerId = message.senderId;
+      debugPrint('Checking notification: _isInChatScreen=$_isInChatScreen, _currentChatPeerId=$_currentChatPeerId, peerId=$peerId');
+      
       if (!_isInChatScreen || _currentChatPeerId != peerId) {
         // 获取发送者名称
         String senderName = '用户';
@@ -458,6 +465,8 @@ class ChatService extends ChangeNotifier {
               ? _users[peerId]!.nickname 
               : _users[peerId]!.username;
         }
+        
+        debugPrint('Showing notification: senderName=$senderName, content=${message.content}');
         
         // 根据消息类型显示不同的通知内容
         String notificationBody;
