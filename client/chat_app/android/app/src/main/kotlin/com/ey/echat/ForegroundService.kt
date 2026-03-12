@@ -73,10 +73,11 @@ class ForegroundService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH  // 高优先级确保通知显示
             ).apply {
-                description = "保持应用后台运行"
+                description = "保持应用后台运行，接收新消息"
                 setShowBadge(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
             
             val notificationManager = getSystemService(NotificationManager::class.java)
@@ -94,12 +95,13 @@ class ForegroundService : Service() {
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Chat App")
-            .setContentText("正在后台运行")
-            .setSmallIcon(android.R.drawable.sym_action_chat)
+            .setContentText("正在后台运行，保持消息接收")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
     }
     
@@ -110,7 +112,8 @@ class ForegroundService : Service() {
                 PowerManager.PARTIAL_WAKE_LOCK,
                 "ChatApp::ForegroundService"
             ).apply {
-                acquire(10 * 60 * 1000L) // 10分钟
+                // 不设置超时，保持一直持有
+                acquire()
             }
         } catch (e: Exception) {
             e.printStackTrace()

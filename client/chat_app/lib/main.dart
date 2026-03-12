@@ -44,6 +44,9 @@ void _initBackgroundService() async {
     } else {
       // 本地后台服务模式 (国内)
       await BackgroundService().init(type: BackgroundServiceType.local);
+      // 自动启动后台服务
+      final started = await BackgroundService().startService();
+      debugPrint('本地后台服务启动: $started');
     }
     debugPrint('后台服务初始化完成');
   } catch (e) {
