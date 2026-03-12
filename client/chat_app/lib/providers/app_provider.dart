@@ -22,22 +22,12 @@ class AppProvider extends ChangeNotifier {
     
     try {
       final storage = StorageService();
-      final chatService = ChatService();
       
       // 加载主题设置
       _themeMode = ThemeMode.values[storage.getThemeMode()];
       
-      // 尝试自动连接
-      final host = storage.serverHost;
-      final port = storage.serverPort;
-      
-      await chatService.connect(host, port);
-      
-      // 检查是否有保存的用户
-      final savedUser = storage.currentUser;
-      if (savedUser != null && chatService.isConnected) {
-        // 可以尝试自动登录
-      }
+      // 异步连接服务器，不阻塞初始化
+      _connectInBackground();
       
       _isInitialized = true;
       _error = null;
@@ -48,10 +38,46 @@ class AppProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+  
+  /// 后台连接服务器
+  Future<void> _connectInBackground() async {
+    try {
+      final storage = StorageService();
+      final chatService = ChatService();
+      
+      final host = storage.serverHost;
+      final port = storage.serverPort;
+      
+      // 尝试连接，但不阻塞
+      final success = await chatService.connect(host, port).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('Connection timeout during init');
+          return false;
+        },
+      );
+      
+      if (success) {
+        debugPrint('Connected to server during init');
+        
+        // 检查是否有保存的用户
+        final savedUser = storage.currentUser;
+        if (savedUser != null) {
+          // 可以尝试自动登录
+          debugPrint('Found saved user: ${savedUser.username}');
+        }
+      } else {
+        debugPrint('Failed to connect to server during init');
+      }
+    } catch (e) {
+      debugPrint('Background connection error: $e');
+    }
+  }
 
   /// 设置主题模式
   void setThemeMode(ThemeMode mode) {
     _themeMode = mode;
+    StorageService().saveThemeMode(mode.index);
     notifyListeners();
   }
 
@@ -62,10 +88,15 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final success = await ChatService().connect(host, port);
+      final success = await ChatService().connect(host, port).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => false,
+      );
+      
       if (success) {
         await StorageService().saveServerConfig(host, port);
       }
+      
       _isLoading = false;
       notifyListeners();
       return success;

@@ -13,6 +13,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  String _status = '正在初始化...';
+
   @override
   void initState() {
     super.initState();
@@ -21,19 +23,39 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _init() async {
     final appProvider = context.read<AppProvider>();
-    await appProvider.init();
     
-    // 等待一段时间显示启动画面
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (!mounted) return;
-    
-    final chatService = context.read<ChatService>();
-    if (chatService.isAuthenticated) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainScreen()),
+    try {
+      // 初始化应用，设置超时
+      await appProvider.init().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('Init timeout, continuing...');
+        },
       );
-    } else {
+      
+      if (!mounted) return;
+      
+      // 最少显示启动画面 1 秒
+      await Future.delayed(const Duration(seconds: 1));
+      
+      if (!mounted) return;
+      
+      final chatService = context.read<ChatService>();
+      if (chatService.isAuthenticated) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
+    } catch (e) {
+      debugPrint('Init error: $e');
+      
+      if (!mounted) return;
+      
+      // 即使出错也进入登录页面
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );

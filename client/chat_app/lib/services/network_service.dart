@@ -34,6 +34,7 @@ class NetworkService {
   int _heartbeatTimeout = 10; // 心跳响应超时 10 秒
   int _missedHeartbeats = 0; // 连续未响应的心跳次数
   int _maxMissedHeartbeats = 3; // 最大允许未响应心跳次数
+  int _connectionTimeout = 5; // 连接超时 5 秒
   
   // 保存登录凭据用于重连后自动登录
   String? _savedUsername;
@@ -99,7 +100,12 @@ class NetworkService {
     _port = port;
     
     try {
-      _socket = await Socket.connect(host, port);
+      // 添加连接超时
+      _socket = await Socket.connect(
+        host, 
+        port,
+        timeout: Duration(seconds: _connectionTimeout),
+      );
       _isConnected = true;
       _missedHeartbeats = 0;
       _reconnectDelay = 1000; // 重置重连延迟
@@ -110,10 +116,29 @@ class NetworkService {
       
       debugPrint('Connected to $host:$port');
       return true;
+    } on SocketException catch (e) {
+      _isConnected = false;
+      debugPrint('Connection failed: $e');
+      _notifyError('Connection failed: ${e.message}');
+      if (_autoReconnect) {
+        _scheduleReconnect();
+      }
+      return false;
+    } on TimeoutException catch (e) {
+      _isConnected = false;
+      debugPrint('Connection timeout: $e');
+      _notifyError('Connection timeout');
+      if (_autoReconnect) {
+        _scheduleReconnect();
+      }
+      return false;
     } catch (e) {
       _isConnected = false;
-      _notifyError('Connection failed: $e');
-      _scheduleReconnect();
+      debugPrint('Connection error: $e');
+      _notifyError('Connection error: $e');
+      if (_autoReconnect) {
+        _scheduleReconnect();
+      }
       return false;
     }
   }
