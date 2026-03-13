@@ -301,17 +301,268 @@
       ],
       "status": "completed",
       "completedAt": "2026-03-12T12:00:00Z"
+    },
+    {
+      "id": "F017",
+      "category": "infrastructure",
+      "description": "极光推送 - 服务器端配置",
+      "priority": "high",
+      "steps": [
+        "配置 JPUSH_APP_KEY 和 JPUSH_MASTER_SECRET 环境变量",
+        "验证 JPushManager 初始化",
+        "测试服务器端推送 API 调用"
+      ],
+      "acceptanceCriteria": [
+        "服务器启动时正确加载极光推送配置",
+        "JPushManager.is_configured() 返回 true",
+        "可以调用极光推送 API 发送通知"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F018",
+      "category": "functional",
+      "description": "极光推送 - 客户端初始化",
+      "priority": "high",
+      "steps": [
+        "修复 JPush 初始化阻塞问题",
+        "实现非阻塞异步初始化",
+        "登录成功后设置 JPush 别名",
+        "退出登录时删除别名"
+      ],
+      "acceptanceCriteria": [
+        "App 启动不因 JPush 初始化而阻塞",
+        "用户登录后 JPush 别名正确设置",
+        "退出登录后别名被清除"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F019",
+      "category": "functional",
+      "description": "极光推送 - Token 注册流程",
+      "priority": "high",
+      "steps": [
+        "客户端获取 JPush Registration ID",
+        "发送 Token 注册消息到服务器 (token_type: jpush)",
+        "服务器保存 Registration ID 到数据库",
+        "验证用户 ID 与 Registration ID 关联"
+      ],
+      "acceptanceCriteria": [
+        "客户端能获取 JPush Registration ID",
+        "服务器正确保存用户的 Registration ID",
+        "可通过用户 ID 查询对应的 Registration ID"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F020",
+      "category": "functional",
+      "description": "极光推送 - 离线消息通知",
+      "priority": "high",
+      "steps": [
+        "服务器检测用户离线状态",
+        "调用 JPushManager 发送推送通知",
+        "客户端接收通知并显示",
+        "点击通知跳转到对应聊天"
+      ],
+      "acceptanceCriteria": [
+        "用户离线时收到新消息推送",
+        "通知显示发送者名称和消息预览",
+        "点击通知打开对应聊天界面"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F021",
+      "category": "functional",
+      "description": "极光推送 - 厂商通道适配",
+      "priority": "medium",
+      "steps": [
+        "配置小米推送通道",
+        "配置华为推送通道",
+        "配置 OPPO/vivo 推送通道",
+        "测试各厂商推送到达率"
+      ],
+      "acceptanceCriteria": [
+        "小米手机可通过厂商通道收到推送",
+        "华为手机可通过厂商通道收到推送",
+        "OPPO/vivo 手机可通过厂商通道收到推送"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F022",
+      "category": "functional",
+      "description": "个人中心 - 收藏功能",
+      "priority": "low",
+      "steps": [
+        "实现消息收藏 UI",
+        "添加收藏消息数据库表",
+        "实现收藏列表页面",
+        "支持取消收藏"
+      ],
+      "acceptanceCriteria": [
+        "可以收藏私聊/群聊消息",
+        "收藏列表正确显示",
+        "可以取消收藏"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F023",
+      "category": "functional",
+      "description": "个人中心 - 相册功能",
+      "priority": "low",
+      "steps": [
+        "实现图片消息筛选",
+        "创建相册展示页面",
+        "支持图片预览和下载",
+        "支持删除本地图片缓存"
+      ],
+      "acceptanceCriteria": [
+        "相册显示所有图片消息",
+        "可以预览和保存图片",
+        "可以删除本地缓存"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F024",
+      "category": "functional",
+      "description": "个人中心 - 文件管理",
+      "priority": "low",
+      "steps": [
+        "实现文件消息筛选",
+        "创建文件列表页面",
+        "支持文件预览和下载",
+        "支持按类型/时间筛选"
+      ],
+      "acceptanceCriteria": [
+        "文件列表显示所有文件消息",
+        "可以预览和保存文件",
+        "支持筛选和排序"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F025",
+      "category": "functional",
+      "description": "设置页面 - 功能完善",
+      "priority": "medium",
+      "steps": [
+        "实现设置持久化存储",
+        "实现清除缓存功能",
+        "添加通知权限管理",
+        "添加隐私设置选项"
+      ],
+      "acceptanceCriteria": [
+        "设置项正确保存和加载",
+        "清除缓存能正确清理本地数据",
+        "通知和隐私设置生效"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F026",
+      "category": "functional",
+      "description": "编辑资料 - 头像上传",
+      "priority": "medium",
+      "steps": [
+        "实现头像选择和裁剪",
+        "上传头像到媒体服务器",
+        "更新用户头像 URL",
+        "显示新头像"
+      ],
+      "acceptanceCriteria": [
+        "可以从相册/相机选择头像",
+        "头像正确上传和保存",
+        "其他用户能看到新头像"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F027",
+      "category": "functional",
+      "description": "编辑资料 - 修改密码",
+      "priority": "medium",
+      "steps": [
+        "服务器端实现修改密码接口",
+        "客户端对接修改密码 API",
+        "验证旧密码正确性",
+        "更新密码哈希"
+      ],
+      "acceptanceCriteria": [
+        "旧密码验证正确",
+        "新密码正确更新",
+        "修改后可以用新密码登录"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F028",
+      "category": "functional",
+      "description": "隐私设置页面",
+      "priority": "low",
+      "steps": [
+        "创建隐私设置页面",
+        "添加好友验证开关",
+        "添加在线状态显示开关",
+        "添加消息已读回执开关"
+      ],
+      "acceptanceCriteria": [
+        "可以控制谁可以添加好友",
+        "可以隐藏在线状态",
+        "可以关闭已读回执"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F029",
+      "category": "functional",
+      "description": "帮助与反馈页面",
+      "priority": "low",
+      "steps": [
+        "创建帮助页面",
+        "添加常见问题 FAQ",
+        "添加反馈提交功能",
+        "添加关于页面内容"
+      ],
+      "acceptanceCriteria": [
+        "用户可以查看 FAQ",
+        "用户可以提交反馈",
+        "关于页面正确显示版本信息"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "F030",
+      "category": "functional",
+      "description": "群组详情页完善",
+      "priority": "medium",
+      "steps": [
+        "创建群组详情页面",
+        "显示群成员列表",
+        "支持查看成员资料",
+        "集成群管理功能入口"
+      ],
+      "acceptanceCriteria": [
+        "可以看到群组详细信息",
+        "可以查看所有群成员",
+        "管理员可以进入管理功能"
+      ],
+      "status": "pending"
     }
   ],
   "statistics": {
-    "total": 16,
+    "total": 30,
     "completed": 16,
     "inProgress": 0,
-    "pending": 0,
+    "pending": 14,
     "byPriority": {
-      "high": 10,
-      "medium": 4,
-      "low": 2
+      "high": 13,
+      "medium": 9,
+      "low": 8
     }
   }
 }
