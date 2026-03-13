@@ -317,7 +317,8 @@
         "JPushManager.is_configured() 返回 true",
         "可以调用极光推送 API 发送通知"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-14T00:00:00Z"
     },
     {
       "id": "F018",

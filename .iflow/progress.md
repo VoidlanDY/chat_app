@@ -515,3 +515,30 @@
   - `server/include/server.hpp` - 添加统计信息和清理定时器
   - `server/src/server.cpp` - 实现健康监控和清理
   - `server/src/bot_manager.cpp` - RAII 风格资源管理
+
+---
+
+## [2026-03-14] 完成功能 #F017 - 极光推送服务器端配置
+- 实现内容:
+  - 配置 JPush 环境变量
+    - AppKey: 16d9f5ae7a467d54f3d9f775
+    - Master Secret: f028dc58ec2143b14d59b1d6
+  - 更新 start_servers.sh 启动脚本
+    - 添加 JPush 凭据环境变量
+  - 验证 JPushManager 初始化
+    - 服务器启动时正确加载配置
+    - `JPush configured with app_key: 16d9f5ae...`
+  - 验证 JPush API 连通性
+    - 认证成功 (HTTP Basic Auth)
+    - API 响应正常
+
+- 测试结果: 通过
+  - 服务器启动 JPush 初始化: ✓
+  - JPushManager.is_configured(): ✓
+  - JPush API 认证: ✓
+
+- 相关文件:
+  - `start_servers.sh` - 添加 JPush 环境变量
+  - `server/src/jpush_manager.cpp` - JPush 管理器实现
+  - `server/src/main.cpp` - JPush 初始化
+  - `/root/test_jpush_auth.py` - 认证测试脚本
