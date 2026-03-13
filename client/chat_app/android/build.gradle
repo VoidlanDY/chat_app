@@ -22,6 +22,21 @@ allprojects {
 rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+    
+    // 为缺少 namespace 的 Flutter 插件设置默认 namespace
+    afterEvaluate {
+        if (project.hasProperty('android')) {
+            if (project.android.namespace == null) {
+                def pluginName = project.name
+                if (pluginName == 'jpush_flutter') {
+                    project.android.namespace 'cn.jpush.flutter'
+                } else {
+                    // 通用 namespace
+                    project.android.namespace 'io.flutter.plugins.' + pluginName.replaceAll('[^a-zA-Z0-9]', '_')
+                }
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete) {
