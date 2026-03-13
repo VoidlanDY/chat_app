@@ -592,3 +592,23 @@
   - `server/src/session.cpp` - Token 注册处理
   - `server/src/jpush_manager.cpp` - JPush Token 管理
   - `client/chat_app/lib/services/chat_service.dart` - 客户端注册
+
+---
+
+## [2026-03-14] 完成功能 #F020 - 极光推送离线消息通知
+- 实现内容:
+  - 服务器端离线推送逻辑完善
+    - 私聊消息: 检测接收者离线状态，发送 JPush 通知
+    - 群聊消息: 检测群成员离线状态，发送 JPush 通知
+    - 支持图片和文件消息类型提示
+  - 双通道推送支持
+    - JPush (国内) 优先
+    - FCM (国外) 备选
+  - 推送内容格式
+    - 标题: 发送者名称/群组名称
+    - 正文: 消息内容预览 (截断 50 字符)
+    - 数据: type, sender_id, group_id 等
+
+- 相关文件:
+  - `server/src/session.cpp` - 离线推送逻辑
+  - `server/src/jpush_manager.cpp` - 推送发送实现

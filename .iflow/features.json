@@ -374,7 +374,8 @@
         "通知显示发送者名称和消息预览",
         "点击通知打开对应聊天界面"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-14T00:00:00Z"
     },
     {
       "id": "F021",

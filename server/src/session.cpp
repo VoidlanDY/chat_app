@@ -1022,6 +1022,7 @@ void Session::handle_group_message(uint32_t sequence, const json& body) {
             }
             
             auto fcm_manager = server_->get_fcm_manager();
+            auto jpush_manager = server_->get_jpush_manager();
             
             for (uint64_t member_id : member_ids) {
                 // 跳过发送者自己
@@ -1031,16 +1032,26 @@ void Session::handle_group_message(uint32_t sequence, const json& body) {
                     // 活跃成员，直接发送消息
                     server_->send_to_user(member_id, 
                         Protocol::serialize(MessageType::GROUP_MESSAGE, 0, message.to_json()));
-                } else if (fcm_manager) {
-                    // 非活跃成员（离线或心跳超时），发送 FCM 推送
-                    json data = {
-                        {"type", "group_message"},
-                        {"group_id", group_id},
-                        {"sender_id", user_id_},
-                        {"message_id", message.message_id}
-                    };
-                    fcm_manager->send_notification(member_id, group_name, notification_body, data);
-                    std::cout << "FCM notification sent to offline/inactive group member: " << member_id << std::endl;
+                } else {
+                    // 非活跃成员（离线或心跳超时），发送推送通知
+                    // 优先使用 JPush (国内)
+                    if (jpush_manager) {
+                        jpush_manager->send_group_message_notification(
+                            member_id, group_id, group_name, user_id_, sender_name, notification_body);
+                        std::cout << "JPush notification sent to offline group member: " << member_id << std::endl;
+                    }
+                    
+                    // 同时发送 FCM (国外)
+                    if (fcm_manager) {
+                        json data = {
+                            {"type", "group_message"},
+                            {"group_id", group_id},
+                            {"sender_id", user_id_},
+                            {"message_id", message.message_id}
+                        };
+                        fcm_manager->send_notification(member_id, group_name, notification_body, data);
+                        std::cout << "FCM notification sent to offline/inactive group member: " << member_id << std::endl;
+                    }
                 }
             }
         }
