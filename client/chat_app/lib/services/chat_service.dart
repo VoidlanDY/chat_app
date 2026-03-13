@@ -1768,12 +1768,21 @@ class ChatService extends ChangeNotifier {
       // 设置通知回调
       _jPush.onNotificationReceived = (message) {
         debugPrint('收到 JPush 通知: $message');
-        // 可以在这里处理自定义消息
       };
       
       _jPush.onNotificationOpened = (message) {
         debugPrint('点击 JPush 通知: $message');
-        // TODO: 根据消息内容跳转到对应页面
+      };
+      
+      // 设置 Registration ID 回调
+      _jPush.onRegistrationIdReceived = (registrationId) {
+        debugPrint('收到 JPush Registration ID: $registrationId');
+        // 注册到服务器
+        registerJPushToken(registrationId);
+        // 设置别名
+        if (_currentUser != null) {
+          _jPush.setAlias('user_${_currentUser!.userId}');
+        }
       };
       
       // 初始化 JPush
@@ -1786,12 +1795,15 @@ class ChatService extends ChangeNotifier {
       // 申请通知权限
       await _jPush.requestPermission();
       
-      // 设置别名 (用户ID)
-      if (_currentUser != null) {
-        await _jPush.setAlias('user_${_currentUser!.userId}');
+      // 如果已经有 Registration ID，立即注册
+      if (_jPush.registrationId != null && _jPush.registrationId!.isNotEmpty) {
+        registerJPushToken(_jPush.registrationId!);
+        if (_currentUser != null) {
+          _jPush.setAlias('user_${_currentUser!.userId}');
+        }
       }
       
-      debugPrint('JPush 初始化成功');
+      debugPrint('JPush 初始化完成');
     } catch (e) {
       debugPrint('初始化 JPush 失败: $e');
     }

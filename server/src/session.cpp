@@ -1437,33 +1437,53 @@ void Session::handle_fcm_token_register(uint32_t sequence, const json& body) {
         return;
     }
     
-    std::string fcm_token = body.value("fcm_token", "");
-    if (fcm_token.empty()) {
-        send(Protocol::create_error(sequence, 400, "FCM token is required"));
+    std::string token = body.value("fcm_token", "");
+    if (token.empty()) {
+        send(Protocol::create_error(sequence, 400, "Token is required"));
         return;
     }
     
-    // 获取 FCM 管理器
+    // 获取 Token 类型 (fcm 或 jpush)
+    std::string token_type = body.value("token_type", "fcm");
+    
     if (!server_) {
         send(Protocol::create_error(sequence, 500, "Server not available"));
         return;
     }
     
-    auto fcm_manager = server_->get_fcm_manager();
-    if (!fcm_manager) {
-        send(Protocol::create_error(sequence, 500, "FCM not configured"));
-        return;
+    bool success = false;
+    
+    if (token_type == "jpush") {
+        // 注册 JPush Token
+        auto jpush_manager = server_->get_jpush_manager();
+        if (jpush_manager) {
+            success = jpush_manager->register_registration_id(user_id_, token);
+            std::cout << "JPush Token registered for user " << user_id_ << std::endl;
+        } else {
+            send(Protocol::create_error(sequence, 500, "JPush not configured"));
+            return;
+        }
+    } else {
+        // 注册 FCM Token
+        auto fcm_manager = server_->get_fcm_manager();
+        if (fcm_manager) {
+            success = fcm_manager->register_token(user_id_, token);
+            std::cout << "FCM Token registered for user " << user_id_ << std::endl;
+        } else {
+            send(Protocol::create_error(sequence, 500, "FCM not configured"));
+            return;
+        }
     }
     
-    // 注册 FCM Token
-    if (fcm_manager->register_token(user_id_, fcm_token)) {
+    if (success) {
         json response = {
             {"success", true},
-            {"user_id", user_id_}
+            {"user_id", user_id_},
+            {"token_type", token_type}
         };
         send(Protocol::create_response(MessageType::FCM_TOKEN_REGISTER_RESPONSE, sequence, response));
     } else {
-        send(Protocol::create_error(sequence, 500, "Failed to register FCM token"));
+        send(Protocol::create_error(sequence, 500, "Failed to register token"));
     }
 }
 

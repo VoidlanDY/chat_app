@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:jpush_flutter/jpush_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'chat_service.dart';
 
 /// 极光推送服务
 /// 支持国内各厂商推送通道 (小米/华为/OPPO/vivo等)
@@ -20,6 +19,7 @@ class JPushService {
   // 回调
   Function(Map<String, dynamic> message)? onNotificationReceived;
   Function(Map<String, dynamic> message)? onNotificationOpened;
+  Function(String registrationId)? onRegistrationIdReceived;
   
   String? get registrationId => _registrationId;
   bool get isInitialized => _isInitialized;
@@ -29,28 +29,37 @@ class JPushService {
     if (_isInitialized) return true;
     
     try {
-      // 初始化 JPush
+      debugPrint('JPush 开始初始化...');
+      
+      // 设置事件处理器
       _jPush.addEventHandler(
-        // 接收通知回调
         onReceiveNotification: (Map<String, dynamic> message) async {
-          debugPrint('JPush onReceiveNotification: $message');
+          debugPrint('JPush 收到通知: $message');
           onNotificationReceived?.call(message);
         },
-        // 点击通知回调
         onOpenNotification: (Map<String, dynamic> message) async {
-          debugPrint('JPush onOpenNotification: $message');
+          debugPrint('JPush 打开通知: $message');
           onNotificationOpened?.call(message);
-          _handleNotificationOpen(message);
         },
-        // 接收自定义消息回调
         onReceiveMessage: (Map<String, dynamic> message) async {
-          debugPrint('JPush onReceiveMessage: $message');
+          debugPrint('JPush 收到消息: $message');
         },
-        // 连接状态
         onConnected: (Map<String, dynamic> message) async {
-          debugPrint('JPush onConnected: $message');
+          debugPrint('JPush 已连接: $message');
         },
       );
+      
+      // 初始化 JPush (使用配置的 AppKey)
+      // 注意：AppKey 已在 AndroidManifest.xml 中配置
+      _jPush.setup(
+        appKey: '16d9f5ae7a467d54f3d9f775',
+        channel: 'developer-default',
+        production: false,
+        debug: kDebugMode,
+      );
+      
+      // 等待一下让 JPush 初始化完成
+      await Future.delayed(const Duration(milliseconds: 500));
       
       // 获取 Registration ID
       _registrationId = await _jPush.getRegistrationID();
@@ -61,8 +70,8 @@ class JPushService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_keyRegistrationId, _registrationId!);
         
-        // 上传到服务器
-        await _uploadRegistrationId(_registrationId!);
+        // 通知外部
+        onRegistrationIdReceived?.call(_registrationId!);
       }
       
       _isInitialized = true;
@@ -71,37 +80,6 @@ class JPushService {
     } catch (e) {
       debugPrint('JPush 初始化失败: $e');
       return false;
-    }
-  }
-  
-  /// 上传 Registration ID 到服务器
-  Future<void> _uploadRegistrationId(String registrationId) async {
-    try {
-      final chatService = ChatService();
-      if (chatService.isConnected) {
-        chatService.registerJPushToken(registrationId);
-        debugPrint('JPush Registration ID 已上传到服务器');
-      }
-    } catch (e) {
-      debugPrint('上传 JPush Registration ID 失败: $e');
-    }
-  }
-  
-  /// 处理通知点击
-  void _handleNotificationOpen(Map<String, dynamic> message) {
-    try {
-      // 解析消息数据
-      final extras = message['extras'] as Map<String, dynamic>?;
-      if (extras == null) return;
-      
-      final type = extras['type'] as String?;
-      final senderId = extras['sender_id'];
-      final groupId = extras['group_id'];
-      
-      // TODO: 根据类型跳转到对应页面
-      debugPrint('通知点击 - type: $type, senderId: $senderId, groupId: $groupId');
-    } catch (e) {
-      debugPrint('处理通知点击失败: $e');
     }
   }
   
@@ -154,20 +132,13 @@ class JPushService {
   /// 申请通知权限 (Android 13+)
   Future<void> requestPermission() async {
     if (Platform.isAndroid) {
-      try {
-        // jpush_flutter 的 applyPushAuthority 方法用于 iOS
-        // Android 需要在原生代码中请求权限
-        debugPrint('JPush 通知权限由系统管理');
-      } catch (e) {
-        debugPrint('JPush 申请权限失败: $e');
-      }
+      debugPrint('JPush 通知权限由系统管理');
     }
   }
   
   /// 停止推送服务
   Future<void> stop() async {
     try {
-      // JPush 不支持停止，只能删除别名
       await deleteAlias();
       _isInitialized = false;
       debugPrint('JPush 服务已停止');
