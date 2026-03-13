@@ -355,7 +355,8 @@
         "服务器正确保存用户的 Registration ID",
         "可通过用户 ID 查询对应的 Registration ID"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-14T00:00:00Z"
     },
     {
       "id": "F020",

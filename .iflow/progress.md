@@ -569,3 +569,26 @@
   - `client/chat_app/lib/main.dart` - JPush 初始化
   - `client/chat_app/lib/services/jpush_service.dart` - 异步获取 Registration ID
   - `client/chat_app/lib/services/chat_service.dart` - 别名设置和删除
+
+---
+
+## [2026-03-14] 完成功能 #F019 - 极光推送 Token 注册流程
+- 实现内容:
+  - 服务器端已支持 token_type: jpush
+    - handle_fcm_token_register 处理 jpush 类型
+    - JPushManager::register_registration_id 保存到数据库
+    - Database::save_fcm_token 存储 Token
+  - 客户端已实现 Token 注册
+    - JPushService 异步获取 Registration ID
+    - ChatService.registerJPushToken 发送注册消息
+    - 消息格式: {fcm_token, token_type: 'jpush'}
+
+- 验证内容:
+  - 代码审查通过
+  - 服务器端 handle_fcm_token_register 支持 jpush 类型
+  - 数据库 user_fcm_tokens 表可用于存储
+
+- 相关文件:
+  - `server/src/session.cpp` - Token 注册处理
+  - `server/src/jpush_manager.cpp` - JPush Token 管理
+  - `client/chat_app/lib/services/chat_service.dart` - 客户端注册
