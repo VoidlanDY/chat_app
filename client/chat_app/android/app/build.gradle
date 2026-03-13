@@ -96,3 +96,22 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'androidx.multidex:multidex:2.0.1'
 }
+
+// 为缺少 namespace 的 Flutter 插件设置默认 namespace
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                if (namespace == null) {
+                    // 根据 plugin name 设置 namespace
+                    def pluginName = project.name
+                    if (pluginName == 'jpush_flutter') {
+                        namespace 'cn.jpush.flutter'
+                    } else if (pluginName.startsWith('flutter_') || pluginName.startsWith('flutter')) {
+                        namespace 'io.flutter.plugins.' + pluginName.replaceAll('-', '_')
+                    }
+                }
+            }
+        }
+    }
+}
