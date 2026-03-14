@@ -1864,4 +1864,9 @@ class ChatService extends ChangeNotifier {
       'token_type': 'jpush',
     });
   }
+  
+  /// 获取图片消息（用于相册功能）
+  Future<List<Message>> getImageMessages({int limit = 100, int beforeTime = 0}) async {
+    return await _messageDb.getImageMessages(limit: limit, beforeTime: beforeTime);
+  }
 }
