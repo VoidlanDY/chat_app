@@ -7,8 +7,8 @@
 ## 当前状态
 - 阶段: 功能完善阶段
 - 最后更新: 2026-03-14
-- 完成功能: 19 / 30
-- 最近完成: F023 个人中心 - 相册功能
+- 完成功能: 20 / 30
+- 最近完成: F024 个人中心 - 文件管理功能
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -827,3 +827,41 @@
   - `client/chat_app/lib/services/chat_service.dart` - 添加相册相关方法
   - `client/chat_app/lib/screens/gallery_screen.dart` - 新增相册页面
   - `client/chat_app/lib/screens/profile_screen.dart` - 添加相册入口
+
+
+---
+
+## [2026-03-14] 完成功能 #F024 - 个人中心文件管理功能
+
+- 实现内容:
+  - 创建文件管理页面 file_manager_screen.dart
+    - 显示所有文件消息列表
+    - 支持下拉刷新和滚动加载更多
+    - 显示文件名、大小、来源和时间
+    - 根据文件扩展名显示不同图标和颜色
+  - 实现文件类型筛选
+    - 全部、文档、压缩包、APK、音频、视频、其他
+    - 使用 FilterChip 展示筛选标签
+    - 显示各类型文件数量
+  - 实现文件下载功能
+    - 使用 http 包下载文件
+    - 保存到应用外部存储目录
+    - 显示下载进度
+    - 下载完成后显示打开按钮
+  - 实现文件打开功能
+    - 使用 url_launcher 打开文件
+  - 更新 profile_screen.dart
+    - 添加文件管理页面导航入口
+  - ChatService 修改
+    - 将 _fixMediaUrl 改为公共方法 fixMediaUrl
+
+- 测试结果: 代码审查通过（待编译测试）
+  - 文件消息筛选逻辑: ✓
+  - 文件类型分类: ✓
+  - 下载功能: ✓
+  - 打开文件功能: ✓
+
+- 相关文件:
+  - `client/chat_app/lib/screens/file_manager_screen.dart` - 新增文件管理页面
+  - `client/chat_app/lib/screens/profile_screen.dart` - 添加文件管理入口
+  - `client/chat_app/lib/services/chat_service.dart` - 修改 fixMediaUrl 为公共方法

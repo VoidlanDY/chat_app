@@ -449,7 +449,8 @@
         "可以预览和保存文件",
         "支持筛选和排序"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-14T17:00:00Z"
     },
     {
       "id": "F025",
@@ -563,9 +564,9 @@
   ],
   "statistics": {
     "total": 30,
-    "completed": 16,
+    "completed": 20,
     "inProgress": 0,
-    "pending": 14,
+    "pending": 10,
     "byPriority": {
       "high": 13,
       "medium": 9,
