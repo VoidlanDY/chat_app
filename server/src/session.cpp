@@ -45,7 +45,10 @@ void Session::send(const std::vector<uint8_t>& data) {
     }
     
     if (!write_in_progress) {
-        do_write();
+        // 使用 post 确保在 io_context 线程中执行
+        asio::post(io_context_, [this, self = shared_from_this()]() {
+            do_write();
+        });
     }
 }
 
@@ -97,6 +100,7 @@ void Session::do_read_body(uint32_t body_size) {
     asio::async_read(socket_, asio::buffer(body_buffer_),
         [this, self, body_size](asio::error_code ec, std::size_t /*length*/) {
             if (ec) {
+                std::cerr << "[Session] Read body error: " << ec.message() << std::endl;
                 return;
             }
             
@@ -104,19 +108,31 @@ void Session::do_read_body(uint32_t body_size) {
             Protocol::parse_header(header_buffer_.data(), header_buffer_.size(), header);
             json body = Protocol::parse_body(body_buffer_.data(), body_size);
             
-            // 在线程池中处理消息，避免阻塞 io_context
-            auto self = shared_from_this();
-            auto server = server_;
-            if (server) {
-                // 获取线程池并提交任务
+            // 使用服务器的线程池处理消息，避免阻塞 io_context
+            // 消息处理（数据库操作等）在独立线程中执行
+            // 发送响应时会自动切回 io_context 线程
+            if (server_) {
+                auto result = server_->get_thread_pool().try_enqueue([this, self, header, body]() {
+                    try {
+                        handle_message(header.type, header.sequence, body);
+                    } catch (const std::exception& e) {
+                        std::cerr << "[Session] Exception in handle_message: " << e.what() << std::endl;
+                    } catch (...) {
+                        std::cerr << "[Session] Unknown exception in handle_message" << std::endl;
+                    }
+                });
+                if (!result) {
+                    std::cerr << "[Session] Thread pool queue full, rejecting message" << std::endl;
+                    send(Protocol::create_error(header.sequence, 503, "Server busy, please retry"));
+                }
+            } else {
+                // 如果没有服务器引用，在 io_context 中处理（兼容旧逻辑）
                 asio::post(io_context_, [this, self, header, body]() {
                     handle_message(header.type, header.sequence, body);
                 });
-            } else {
-                handle_message(header.type, header.sequence, body);
             }
             
-            // 继续读取下一条消息
+            // 继续读取下一条消息（不等待消息处理完成）
             do_read_header();
         });
 }

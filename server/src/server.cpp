@@ -35,8 +35,13 @@ bool Server::start() {
     
     running_ = true;
     
-    // 创建线程池用于数据库操作
-    thread_pool_ = std::make_unique<ThreadPool>(4);
+    // 创建高性能线程池用于消息处理和数据库操作
+    ThreadPoolV2::Config pool_config;
+    pool_config.min_threads = config_.min_worker_threads;
+    pool_config.max_threads = config_.max_worker_threads;
+    pool_config.max_queue_size = config_.max_task_queue_size;
+    pool_config.rejection_policy = ThreadPoolV2::RejectionPolicy::BLOCK;
+    thread_pool_ = std::make_unique<ThreadPoolV2>(pool_config);
     
     // 创建 work guard 防止 io_context 在没有任务时停止
     work_guard_ = std::make_unique<asio::executor_work_guard<IOContext::executor_type>>(
@@ -48,6 +53,9 @@ bool Server::start() {
     });
     
     std::cout << "Server starting on " << config_.host << ":" << config_.port << std::endl;
+    std::cout << "Thread pool: min=" << config_.min_worker_threads 
+              << ", max=" << config_.max_worker_threads 
+              << ", max_queue=" << config_.max_task_queue_size << std::endl;
     
     // 开始接受连接
     do_accept();
@@ -58,7 +66,7 @@ bool Server::start() {
     // 启动定期清理
     cleanup_expired_resources();
     
-    // 启动工作线程
+    // 启动工作线程（仅用于网络IO）
     for (int i = 0; i < config_.thread_count; ++i) {
         threads_.emplace_back([this]() {
             io_context_.run();
@@ -292,6 +300,23 @@ Server::Stats Server::get_stats() {
     stats.current_connections = sessions_.size();
     stats.messages_processed = messages_processed_;
     stats.start_time = start_time_;
+    
+    // 获取线程池统计
+    if (thread_pool_) {
+        auto pool_stats = thread_pool_->get_stats();
+        stats.thread_pool_queue_size = pool_stats.queue_size;
+        stats.thread_pool_threads = pool_stats.total_threads;
+        stats.thread_pool_active = pool_stats.active_threads;
+    }
+    
+    // 获取数据库连接池统计
+    if (database_pool_) {
+        auto db_stats = database_pool_->get_stats();
+        stats.db_total_connections = db_stats.total_connections;
+        stats.db_idle_connections = db_stats.idle_connections;
+        stats.db_used_connections = db_stats.used_connections;
+    }
+    
     return stats;
 }
 
@@ -331,10 +356,20 @@ void Server::check_heartbeats() {
             auto stats = get_stats();
             auto uptime = std::chrono::duration_cast<std::chrono::seconds>(
                 now - stats.start_time).count();
-            std::cout << "[Health] Uptime: " << uptime << "s, "
-                      << "Connections: " << stats.current_connections << ", "
-                      << "Total: " << stats.total_connections << ", "
-                      << "Messages: " << stats.messages_processed << std::endl;
+            
+            std::cout << "[Health] Uptime: " << uptime << "s" << std::endl;
+            std::cout << "  Connections: " << stats.current_connections 
+                      << " (total: " << stats.total_connections 
+                      << ", messages: " << stats.messages_processed << ")" << std::endl;
+            std::cout << "  ThreadPool: " << stats.thread_pool_active 
+                      << "/" << stats.thread_pool_threads << " active, queue: " 
+                      << stats.thread_pool_queue_size << std::endl;
+            
+            if (database_pool_) {
+                std::cout << "  DB Pool: " << stats.db_used_connections 
+                          << "/" << stats.db_total_connections << " used, idle: " 
+                          << stats.db_idle_connections << std::endl;
+            }
             
             // 继续下一次检查
             check_heartbeats();

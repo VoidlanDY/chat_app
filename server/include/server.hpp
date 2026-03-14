@@ -10,7 +10,8 @@
 #include <asio.hpp>
 #include "protocol.hpp"
 #include "session.hpp"
-#include "thread_pool.hpp"
+#include "thread_pool_v2.hpp"
+#include "database_pool.hpp"
 
 namespace chat {
 
@@ -38,6 +39,15 @@ public:
         int thread_count = 4;
         int heartbeat_timeout = 60; // seconds
         int cleanup_interval = 300;  // seconds - 清理过期会话的间隔
+        
+        // 线程池配置
+        size_t min_worker_threads = 4;
+        size_t max_worker_threads = 16;
+        size_t max_task_queue_size = 1000;
+        
+        // 数据库连接池配置
+        size_t db_min_connections = 5;
+        size_t db_max_connections = 20;
     };
     
     Server(const Config& config);
@@ -82,11 +92,15 @@ public:
     void set_jpush_manager(std::shared_ptr<JPushManager> jpush_manager);
     std::shared_ptr<JPushManager> get_jpush_manager() { return jpush_manager_; }
     
+    // 设置数据库连接池
+    void set_database_pool(std::shared_ptr<DatabasePool> pool) { database_pool_ = pool; }
+    std::shared_ptr<DatabasePool> get_database_pool() { return database_pool_; }
+    
     // 获取 io_context（用于异步操作）
     IOContext& get_io_context() { return io_context_; }
     
     // 获取线程池（用于数据库操作）
-    ThreadPool& get_thread_pool() { return *thread_pool_; }
+    ThreadPoolV2& get_thread_pool() { return *thread_pool_; }
     
     // 获取服务器统计信息
     struct Stats {
@@ -94,6 +108,16 @@ public:
         size_t current_connections = 0;
         size_t messages_processed = 0;
         std::chrono::steady_clock::time_point start_time;
+        
+        // 线程池统计
+        size_t thread_pool_queue_size = 0;
+        size_t thread_pool_threads = 0;
+        size_t thread_pool_active = 0;
+        
+        // 数据库连接池统计
+        size_t db_total_connections = 0;
+        size_t db_idle_connections = 0;
+        size_t db_used_connections = 0;
     };
     Stats get_stats();
     
@@ -112,8 +136,11 @@ private:
     // Work guard - 防止 io_context 在没有任务时停止
     std::unique_ptr<asio::executor_work_guard<IOContext::executor_type>> work_guard_;
     
-    // 线程池用于处理数据库操作
-    std::unique_ptr<ThreadPool> thread_pool_;
+    // 高性能线程池用于处理消息和数据库操作
+    std::unique_ptr<ThreadPoolV2> thread_pool_;
+    
+    // 数据库连接池
+    std::shared_ptr<DatabasePool> database_pool_;
     
     std::map<uint64_t, Session::ptr> sessions_;
     std::mutex sessions_mutex_;

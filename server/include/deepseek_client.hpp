@@ -13,7 +13,7 @@
 #include <atomic>
 #include <thread>
 #include <asio.hpp>
-#include "thread_pool.hpp"
+#include "thread_pool_v2.hpp"
 
 namespace chat {
 

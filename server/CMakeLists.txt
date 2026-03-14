@@ -26,6 +26,7 @@ add_executable(chat_server
     src/server.cpp
     src/session.cpp
     src/database.cpp
+    src/database_pool.cpp
     src/user_manager.cpp
     src/message_manager.cpp
     src/group_manager.cpp
@@ -35,6 +36,7 @@ add_executable(chat_server
     src/js_bot.cpp
     src/fcm_manager.cpp
     src/jpush_manager.cpp
+    src/thread_pool_v2.cpp
 )
 
 target_include_directories(chat_server PRIVATE
