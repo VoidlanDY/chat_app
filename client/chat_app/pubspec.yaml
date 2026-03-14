@@ -22,8 +22,8 @@ dependencies:
   firebase_core: ^2.24.2
   firebase_messaging: ^14.7.10
   
-  # 极光推送 (国内)
-  jpush_flutter: ^2.4.0
+  # 极光推送 (国内) - 使用 3.x 版本支持 Flutter 3.0+
+  jpush_flutter: ^3.4.0
   
   # 本地存储
   shared_preferences: ^2.2.2
