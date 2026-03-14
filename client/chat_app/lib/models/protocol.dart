@@ -18,6 +18,8 @@ enum MessageType {
   userSearchResponse(13),
   userUpdate(14),
   userUpdateResponse(15),
+  passwordUpdate(16),
+  passwordUpdateResponse(17),
 
   // 好友相关
   friendAdd(20),

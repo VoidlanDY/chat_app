@@ -287,6 +287,9 @@ class ChatService extends ChangeNotifier {
       case MessageType.messageRecallResponse:
         _handleMessageRecallResponse(body);
         break;
+      case MessageType.passwordUpdateResponse:
+        _handlePasswordUpdateResponse(body);
+        break;
       default:
         break;
     }
@@ -1179,6 +1182,56 @@ class ChatService extends ChangeNotifier {
     if (avatarUrl != null) data['avatar_url'] = avatarUrl;
     
     _network.send(MessageType.userUpdate, data);
+  }
+  
+  // 修改密码相关状态
+  bool _passwordUpdateSuccess = false;
+  String? _passwordUpdateError;
+  
+  bool get passwordUpdateSuccess => _passwordUpdateSuccess;
+  String? get passwordUpdateError => _passwordUpdateError;
+  
+  /// 修改密码
+  Future<bool> updatePassword(String oldPassword, String newPassword) async {
+    // 重置状态
+    _passwordUpdateSuccess = false;
+    _passwordUpdateError = null;
+    
+    // 验证新密码长度
+    if (newPassword.length < 6) {
+      _passwordUpdateError = '新密码至少需要6个字符';
+      notifyListeners();
+      return false;
+    }
+    
+    _network.send(MessageType.passwordUpdate, {
+      'old_password': oldPassword,
+      'new_password': newPassword,
+    });
+    
+    // 等待响应（最多5秒）
+    for (int i = 0; i < 50; i++) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (_passwordUpdateSuccess || _passwordUpdateError != null) {
+        return _passwordUpdateSuccess;
+      }
+    }
+    
+    _passwordUpdateError = '请求超时';
+    return false;
+  }
+  
+  /// 处理修改密码响应
+  void _handlePasswordUpdateResponse(Map<String, dynamic> body) {
+    final code = body['code'] ?? -1;
+    if (code == 0) {
+      _passwordUpdateSuccess = true;
+      _passwordUpdateError = null;
+    } else {
+      _passwordUpdateSuccess = false;
+      _passwordUpdateError = body['message'] as String? ?? '修改密码失败';
+    }
+    notifyListeners();
   }
   
   /// 处理设置管理员响应
