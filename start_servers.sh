@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Chat App 服务器启动脚本
-# 启动主服务器和媒体文件服务器
+# 启动主服务器 (包含 HTTP Gateway 和 TCP 聊天服务)
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 SERVER_DIR="$PROJECT_ROOT/server"
@@ -23,7 +23,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}==================================="
-echo "   Chat App 服务器启动脚本"
+echo "   Chat App 服务器启动脚本 v2.0"
 echo -e "===================================${NC}"
 echo ""
 
@@ -31,47 +31,42 @@ echo ""
 mkdir -p "$MEDIA_DIR"
 echo -e "${GREEN}✓ 媒体目录已创建: $MEDIA_DIR${NC}"
 
-# 启动媒体文件服务器 (C++ 版本)
-echo -e "${YELLOW}启动媒体文件服务器 (端口 8889)...${NC}"
-cd "$SERVER_DIR/build"
-./media_server -d "$MEDIA_DIR" &
-MEDIA_PID=$!
-echo -e "${GREEN}✓ 媒体服务器已启动 (PID: $MEDIA_PID)${NC}"
-
-# 等待媒体服务器启动
-sleep 1
-
-# 启动主聊天服务器 (带 DeepSeek API 和 JPush 推送)
-echo -e "${YELLOW}启动聊天服务器 (端口 8888)...${NC}"
+# 启动主服务器 (包含 HTTP Gateway 和 TCP 聊天服务)
+echo -e "${YELLOW}启动主服务器...${NC}"
 cd "$SERVER_DIR"
 MEDIA_DIR="$MEDIA_DIR" \
 JPUSH_APP_KEY="$JPUSH_APP_KEY" \
 JPUSH_MASTER_SECRET="$JPUSH_MASTER_SECRET" \
 ./build/chat_server --deepseek-api-key "$DEEPSEEK_API_KEY" &
 CHAT_PID=$!
-echo -e "${GREEN}✓ 聊天服务器已启动 (PID: $CHAT_PID)${NC}"
-echo -e "${GREEN}✓ AI 机器人已启用 (DeepSeek API)${NC}"
-echo -e "${GREEN}✓ JPush 推送已启用 (极光推送)${NC}"
+
+# 等待服务器启动
+sleep 2
 
 echo ""
 echo -e "${GREEN}===================================${NC}"
-echo -e "${GREEN}所有服务器已启动:${NC}"
-echo -e "  聊天服务器: ${YELLOW}localhost:8888${NC}"
-echo -e "  媒体服务器: ${YELLOW}localhost:8889${NC}"
+echo -e "${GREEN}服务器已启动:${NC}"
+echo -e "  TCP 聊天服务: ${YELLOW}localhost:8888${NC}"
+echo -e "  HTTP 文件服务: ${YELLOW}localhost:8889${NC}"
 echo ""
-echo "按 Ctrl+C 停止所有服务器"
+echo -e "  文件上传: POST http://localhost:8889/api/upload"
+echo -e "  文件下载: GET  http://localhost:8889/media/{file_id}/{filename}"
+echo ""
+echo -e "${GREEN}功能状态:${NC}"
+echo -e "  ✓ AI 机器人 (DeepSeek API)"
+echo -e "  ✓ JPush 推送 (极光推送)"
+echo -e "  ✓ HTTP Gateway (文件服务)"
+echo ""
+echo "按 Ctrl+C 停止服务器"
 echo -e "${GREEN}===================================${NC}"
 
 # 保存 PID 到文件
-echo "$MEDIA_PID" > "$SERVER_DIR/media_server.pid"
 echo "$CHAT_PID" > "$SERVER_DIR/chat_server.pid"
 
-# 等待任意子进程结束
-wait
+# 等待服务器进程结束
+wait $CHAT_PID
 
 # 清理
 echo ""
-echo "停止服务器..."
-kill $MEDIA_PID 2>/dev/null
-kill $CHAT_PID 2>/dev/null
 echo "服务器已停止"
+rm -f "$SERVER_DIR/chat_server.pid"

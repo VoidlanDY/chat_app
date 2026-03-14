@@ -560,15 +560,35 @@
         "管理员可以进入管理功能"
       ],
       "status": "pending"
+    },
+    {
+      "id": "F031",
+      "category": "infrastructure",
+      "description": "HTTP Gateway 统一文件服务",
+      "priority": "high",
+      "steps": [
+        "创建 HttpGateway 组件",
+        "集成 libmicrohttpd HTTP 服务",
+        "实现 multipart 文件上传",
+        "实现文件下载服务",
+        "客户端改用 HTTP 上传"
+      ],
+      "acceptanceCriteria": [
+        "HTTP 上传文件成功",
+        "HTTP 下载文件成功",
+        "单个进程提供 TCP 和 HTTP 服务"
+      ],
+      "status": "completed",
+      "completedAt": "2026-03-14T19:00:00Z"
     }
   ],
   "statistics": {
-    "total": 30,
-    "completed": 20,
+    "total": 31,
+    "completed": 21,
     "inProgress": 0,
     "pending": 10,
     "byPriority": {
-      "high": 13,
+      "high": 14,
       "medium": 9,
       "low": 8
     }

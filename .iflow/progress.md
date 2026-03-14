@@ -7,8 +7,8 @@
 ## 当前状态
 - 阶段: 功能完善阶段
 - 最后更新: 2026-03-14
-- 完成功能: 20 / 30
-- 最近完成: F024 个人中心 - 文件管理功能
+- 完成功能: 21 / 30
+- 最近完成: F031 HTTP Gateway 统一文件服务
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -21,6 +21,7 @@
 - 2026-03-11 完成功能 #F011: 多媒体消息 - 文件
 - 2026-03-11 完成功能 #F013: 客户端本地聊天记录保存
 - 2026-03-11 完成功能 #F014: DeepSeek AI 机器人自动回复
+- 2026-03-14 完成功能 #F031: HTTP Gateway 统一文件服务
 
 ## 待处理问题
 - MySQL 数据库连接需要配置
@@ -862,6 +863,131 @@
   - 打开文件功能: ✓
 
 - 相关文件:
+
   - `client/chat_app/lib/screens/file_manager_screen.dart` - 新增文件管理页面
+
   - `client/chat_app/lib/screens/profile_screen.dart` - 添加文件管理入口
+
   - `client/chat_app/lib/services/chat_service.dart` - 修改 fixMediaUrl 为公共方法
+
+
+
+
+
+---
+
+
+
+## [2026-03-14] 完成功能 #F031 - HTTP Gateway 统一文件服务
+
+
+
+- 问题描述:
+
+  - 原有媒体上传使用 TCP + Base64 方式，效率低、内存占用大
+
+  - 需要单独启动两个服务器进程 (chat_server + media_server)
+
+  - 客户端需要配置两个服务器地址
+
+
+
+- 架构改进:
+
+  - 创建 HttpGateway 组件，集成到主服务器进程
+
+  - HTTP Gateway 在端口 8889 提供文件上传下载服务
+
+  - TCP 聊天服务继续使用端口 8888
+
+  - 客户端使用 HTTP POST multipart/form-data 上传文件
+
+
+
+- 实现内容:
+
+  - 服务器端新增 `http_gateway.hpp` 和 `http_gateway.cpp`
+
+    - 基于 libmicrohttpd 实现 HTTP 服务
+
+    - 支持 CORS 跨域访问
+
+    - 支持 multipart/form-data 文件上传
+
+    - 支持 Base64 JSON 方式上传（兼容旧客户端）
+
+    - 文件保存到 media/YYYY/MM/DD/ 目录
+
+    - 数据库记录 media_files 表
+
+  - 服务器端 Server 类改进
+
+    - 添加 SO_REUSEADDR 选项
+
+    - 改进错误处理和日志
+
+  - 客户端 ChatService 改进
+
+    - uploadMedia() 改用 HTTP POST 方式
+
+    - 使用 http 包发送 multipart 请求
+
+    - 支持上传进度显示
+
+  - 启动脚本简化
+
+    - 不再需要单独启动 media_server
+
+    - 一个进程同时提供 TCP 和 HTTP 服务
+
+
+
+- 测试结果: 通过
+
+  - HTTP OPTIONS 预检请求: ✓ (200 OK)
+
+  - HTTP 文件上传: ✓ (返回 file_id 和 URL)
+
+  - HTTP 图片上传: ✓
+
+  - HTTP 文件下载: ✓
+
+  - 文件保存到磁盘: ✓
+
+  - 数据库记录: ✓
+
+
+
+- API 端点:
+
+  - 文件上传: POST http://localhost:8889/api/upload
+
+    - Headers: Authorization: Bearer {user_id}:{token}
+
+    - Body: multipart/form-data (file, media_type)
+
+    - Response: {"code":0,"data":{"file_id":1,"url":"/media/1/xxx.png",...}}
+
+  - 文件下载: GET http://localhost:8889/media/{file_id}/{filename}
+
+    - 返回文件内容，自动设置 Content-Type
+
+
+
+- 相关文件:
+
+  - `server/include/http_gateway.hpp` - HTTP Gateway 头文件
+
+  - `server/src/http_gateway.cpp` - HTTP Gateway 实现
+
+  - `server/src/main.cpp` - 集成 HTTP Gateway 初始化
+
+  - `server/src/server.cpp` - 添加 SO_REUSEADDR 和错误处理
+
+  - `server/CMakeLists.txt` - 添加 http_gateway.cpp 和 libmicrohttpd 链接
+
+  - `client/chat_app/lib/services/chat_service.dart` - 改用 HTTP 上传
+
+  - `start_servers.sh` - 简化启动脚本
+
+

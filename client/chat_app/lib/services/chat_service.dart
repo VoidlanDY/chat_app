@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import '../models/protocol.dart';
 import 'network_service.dart';
@@ -1349,15 +1351,9 @@ class ChatService extends ChangeNotifier {
   // ==================== 媒体上传相关 ====================
   
   /// 上传媒体文件
+  /// 使用 HTTP POST 上传到 HTTP Gateway (端口 8889)
   /// 返回上传成功后的文件 URL
   Future<String?> uploadMedia(File file, {int mediaType = 1}) async {
-    // 检查网络连接
-    if (!_isConnected) {
-      _uploadError = '未连接到服务器';
-      notifyListeners();
-      return null;
-    }
-    
     // 重置状态
     _mediaUploading = true;
     _uploadProgress = 0.0;
@@ -1369,47 +1365,84 @@ class ChatService extends ChangeNotifier {
     try {
       // 读取文件
       final bytes = await file.readAsBytes();
-      final base64Data = base64Encode(bytes);
       final fileName = file.path.split('/').last;
       
-      debugPrint('Uploading media: $fileName, size: ${bytes.length} bytes');
+      debugPrint('Uploading media via HTTP: $fileName, size: ${bytes.length} bytes');
+      
+      _uploadProgress = 0.3;
+      notifyListeners();
+      
+      // 使用 HTTP POST 上传到 HTTP Gateway
+      // 媒体服务器地址使用 _mediaServerHost (默认 10.0.2.2:8889)
+      final uri = Uri.parse('http://$_mediaServerHost/api/upload');
+      
+      // 创建 multipart 请求
+      final request = http.MultipartRequest('POST', uri);
+      
+      // 添加授权头
+      if (_currentUser != null) {
+        request.headers['Authorization'] = 'Bearer ${_currentUser!.userId}:session_token';
+      }
+      
+      // 添加文件
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: fileName,
+        ),
+      );
+      
+      // 添加媒体类型字段
+      request.fields['media_type'] = mediaType.toString();
       
       _uploadProgress = 0.5;
       notifyListeners();
       
-      // 发送上传请求
-      final sent = _network.send(MessageType.mediaUpload, {
-        'file_name': fileName,
-        'file_data': base64Data,
-        'media_type': mediaType,
-      });
+      debugPrint('Sending HTTP upload request to: $uri');
       
-      if (!sent) {
-        _mediaUploading = false;
-        _uploadError = '发送上传请求失败';
-        notifyListeners();
-        return null;
-      }
+      // 发送请求
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+      final response = await http.Response.fromStream(streamedResponse);
       
-      debugPrint('Upload request sent, waiting for response...');
+      _uploadProgress = 0.8;
+      notifyListeners();
       
-      // 等待响应（最多30秒，因为文件可能较大）
-      for (int i = 0; i < 300; i++) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        if (_uploadedMediaUrl != null || _uploadError != null) {
-          _mediaUploading = false;
-          _uploadProgress = 1.0;
-          notifyListeners();
-          debugPrint('Upload complete: url=$_uploadedMediaUrl, error=$_uploadError');
-          return _uploadedMediaUrl;
+      debugPrint('HTTP response status: ${response.statusCode}');
+      debugPrint('HTTP response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final code = json['code'] ?? -1;
+        
+        if (code == 0) {
+          final data = json['data'] as Map<String, dynamic>?;
+          if (data != null) {
+            _uploadedFileId = data['file_id'] as int?;
+            final rawUrl = data['url'] as String?;
+            // 构建完整的 URL
+            if (rawUrl != null) {
+              _uploadedMediaUrl = 'http://$_mediaServerHost$rawUrl';
+            }
+            _uploadError = null;
+            debugPrint('Media uploaded successfully: $_uploadedMediaUrl');
+          }
+        } else {
+          _uploadedMediaUrl = null;
+          _uploadedFileId = null;
+          _uploadError = json['message'] as String? ?? 'Upload failed';
+          debugPrint('Media upload failed: $_uploadError');
         }
+      } else {
+        _uploadError = 'HTTP error: ${response.statusCode}';
+        debugPrint('Media upload HTTP error: ${response.statusCode}');
       }
       
       _mediaUploading = false;
-      _uploadError = '上传超时';
+      _uploadProgress = 1.0;
       notifyListeners();
-      debugPrint('Upload timeout');
-      return null;
+      
+      return _uploadedMediaUrl;
     } catch (e) {
       _mediaUploading = false;
       _uploadError = '上传失败: $e';

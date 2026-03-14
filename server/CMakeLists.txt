@@ -74,6 +74,7 @@ add_executable(chat_server
     src/fcm_manager.cpp
     src/jpush_manager.cpp
     src/thread_pool_v2.cpp
+    src/http_gateway.cpp
 )
 
 target_include_directories(chat_server PRIVATE
@@ -89,6 +90,7 @@ target_link_libraries(chat_server PRIVATE
     OpenSSL::Crypto
     ${MYSQL_LIBRARY}
     ${CURL_LIBRARY}
+    ${MHD_LIBRARY}
     nlohmann_json::nlohmann_json
     qjs
     dl

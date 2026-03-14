@@ -7,14 +7,20 @@
 #include "bot_manager.hpp"
 #include "fcm_manager.hpp"
 #include "jpush_manager.hpp"
+#include "http_gateway.hpp"
 #include <iostream>
 #include <memory>
 #include <csignal>
 #include <cstdlib>
 
 std::shared_ptr<chat::Server> g_server;
+std::shared_ptr<chat::HttpGateway> g_http_gateway;
 
 void signal_handler(int signal) {
+    std::cout << "\nShutting down..." << std::endl;
+    if (g_http_gateway) {
+        g_http_gateway->stop();
+    }
     if (g_server) {
         g_server->stop();
     }
@@ -156,6 +162,27 @@ int main(int argc, char* argv[]) {
         std::cout << "JPush (极光推送) initialized successfully" << std::endl;
     } else {
         std::cout << "JPush not configured (set JPUSH_APP_KEY and JPUSH_MASTER_SECRET env vars)" << std::endl;
+    }
+    
+    // 初始化 HTTP Gateway (统一文件上传下载入口)
+    chat::HttpGateway::Config http_config;
+    http_config.port = 8889; // HTTP 文件服务端口
+    http_config.max_upload_size = 50 * 1024 * 1024; // 50MB
+    
+    // 从环境变量获取媒体目录
+    const char* env_media_dir = std::getenv("MEDIA_DIR");
+    http_config.media_dir = env_media_dir ? env_media_dir : "media";
+    
+    g_http_gateway = std::make_shared<chat::HttpGateway>(http_config);
+    g_http_gateway->set_database(database);
+    g_http_gateway->set_user_manager(user_manager);
+    
+    if (g_http_gateway->start()) {
+        std::cout << "HTTP Gateway started on port " << http_config.port << std::endl;
+        std::cout << "  - File upload: POST http://localhost:" << http_config.port << "/api/upload" << std::endl;
+        std::cout << "  - File download: GET http://localhost:" << http_config.port << "/media/{file_id}/{filename}" << std::endl;
+    } else {
+        std::cerr << "Warning: Failed to start HTTP Gateway" << std::endl;
     }
     
     // 设置信号处理

@@ -10,18 +10,45 @@
 #include "fcm_manager.hpp"
 #include <iostream>
 #include <thread>
+#include <system_error>
 
 namespace chat {
 
 Server::Server(const Config& config)
     : config_(config)
     , io_context_()
-    , acceptor_(io_context_, Endpoint(asio::ip::make_address(config.host), config.port))
+    , acceptor_(io_context_)
     , signals_(io_context_, SIGINT, SIGTERM)
     , running_(false)
     , heartbeat_timer_(io_context_)
     , cleanup_timer_(io_context_)
     , start_time_(std::chrono::steady_clock::now()) {
+    
+    // 设置 SO_REUSEADDR 选项并绑定端口
+    asio::error_code ec;
+    auto endpoint = Endpoint(asio::ip::make_address(config.host), config.port);
+    
+    acceptor_.open(endpoint.protocol(), ec);
+    if (ec) {
+        throw std::system_error(ec, "Failed to open acceptor");
+    }
+    
+    acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true), ec);
+    if (ec) {
+        std::cerr << "Warning: Failed to set SO_REUSEADDR: " << ec.message() << std::endl;
+    }
+    
+    acceptor_.bind(endpoint, ec);
+    if (ec) {
+        throw std::system_error(ec, "Failed to bind to port " + std::to_string(config.port));
+    }
+    
+    acceptor_.listen(asio::socket_base::max_listen_connections, ec);
+    if (ec) {
+        throw std::system_error(ec, "Failed to listen on port " + std::to_string(config.port));
+    }
+    
+    std::cout << "Acceptor bound to " << config.host << ":" << config.port << std::endl;
 }
 
 Server::~Server() {
@@ -111,12 +138,13 @@ void Server::stop() {
 }
 
 void Server::run() {
-    // 等待所有工作线程完成
+    // 等待所有工作线程完成（如果 stop() 还没有 join 过）
     for (auto& thread : threads_) {
         if (thread.joinable()) {
             thread.join();
         }
     }
+    threads_.clear();
 }
 
 void Server::do_accept() {
