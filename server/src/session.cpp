@@ -640,11 +640,12 @@ void Session::handle_private_message(uint32_t sequence, const json& body) {
             if (receiver_active) {
                 server_->send_to_user(receiver_id, 
                     Protocol::serialize(MessageType::PRIVATE_MESSAGE, 0, message.to_json()));
+                std::cout << "Sending message to online user: " << receiver_id << std::endl;
             }
         }
         
-        // 如果接收者不活跃（离线或心跳超时），发送推送通知
-        if (!receiver_active && server_) {
+        // 始终发送推送通知（不管在线与否，App在后台时也能收到）
+        if (server_) {
             // 获取发送者信息
             std::string sender_name = "用户";
             if (user_manager_) {
@@ -666,7 +667,7 @@ void Session::handle_private_message(uint32_t sequence, const json& body) {
             auto jpush_manager = server_->get_jpush_manager();
             if (jpush_manager) {
                 jpush_manager->send_message_notification(receiver_id, user_id_, sender_name, notification_body);
-                std::cout << "JPush notification sent to offline user: " << receiver_id << std::endl;
+                std::cout << "JPush notification sent to user: " << receiver_id << std::endl;
             }
             
             // 同时发送 FCM (国外)
@@ -678,7 +679,7 @@ void Session::handle_private_message(uint32_t sequence, const json& body) {
                     {"message_id", std::to_string(message.message_id)}
                 };
                 fcm_manager->send_notification(receiver_id, sender_name, notification_body, data);
-                std::cout << "FCM notification sent to offline user: " << receiver_id << std::endl;
+                std::cout << "FCM notification sent to user: " << receiver_id << std::endl;
             }
         }
         
