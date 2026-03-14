@@ -64,6 +64,7 @@ private:
     void handle_user_info(uint32_t sequence, const json& body);
     void handle_user_search(uint32_t sequence, const json& body);
     void handle_user_update(uint32_t sequence, const json& body);
+    void handle_password_update(uint32_t sequence, const json& body);
     
     void handle_friend_add(uint32_t sequence, const json& body);
     void handle_friend_accept(uint32_t sequence, const json& body);

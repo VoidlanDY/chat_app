@@ -5,10 +5,10 @@
 功能包括：私聊、群聊、好友系统、多媒体消息、MySQL数据存储
 
 ## 当前状态
-- 阶段: 生产级稳定性优化
+- 阶段: 功能完善阶段
 - 最后更新: 2026-03-14
-- 完成功能: 18 / 18
-- 最近重构: 服务器架构重构解决假死问题
+- 完成功能: 17 / 30
+- 最近完成: F027 编辑资料修改密码
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -706,3 +706,35 @@
   - `server/include/server.hpp` - 更新服务器配置
   - `server/src/server.cpp` - 集成线程池和健康监控
   - `server/src/session.cpp` - 消息处理重构
+
+
+---
+
+## [2026-03-14] 完成功能 #F027 - 编辑资料修改密码
+
+- 实现内容:
+  - 服务器端协议添加 PASSWORD_UPDATE 和 PASSWORD_UPDATE_RESPONSE 消息类型
+  - 服务器端 Session 添加 handle_password_update 消息处理器
+    - 验证用户已登录
+    - 验证旧密码正确性
+    - 验证新密码长度 (至少6字符)
+    - 调用 UserManager::update_password 更新密码
+  - 客户端协议添加 passwordUpdate 和 passwordUpdateResponse 消息类型
+  - 客户端 ChatService 添加 updatePassword 方法和状态跟踪
+  - 完善 edit_profile_screen.dart 修改密码对话框
+    - 添加输入验证 (旧密码、新密码长度、确认密码一致)
+    - 显示加载状态
+    - 显示成功/错误提示
+
+- 测试结果: 代码审查通过
+  - 服务器端密码修改逻辑: ✓
+  - 客户端 UI 交互: ✓
+  - 错误处理: ✓
+
+- 相关文件:
+  - `server/include/protocol.hpp` - 添加 PASSWORD_UPDATE 消息类型
+  - `server/include/session.hpp` - 添加 handle_password_update 声明
+  - `server/src/session.cpp` - 实现密码修改处理
+  - `client/chat_app/lib/models/protocol.dart` - 添加客户端消息类型
+  - `client/chat_app/lib/services/chat_service.dart` - 添加 updatePassword 方法
+  - `client/chat_app/lib/screens/edit_profile_screen.dart` - 完善修改密码对话框

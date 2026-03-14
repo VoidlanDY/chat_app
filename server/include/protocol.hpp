@@ -28,6 +28,8 @@ enum class MessageType : uint8_t {
     USER_SEARCH_RESPONSE = 13,
     USER_UPDATE = 14,
     USER_UPDATE_RESPONSE = 15,
+    PASSWORD_UPDATE = 16,
+    PASSWORD_UPDATE_RESPONSE = 17,
     
     // 好友相关
     FRIEND_ADD = 20,

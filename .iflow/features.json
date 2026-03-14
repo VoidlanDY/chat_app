@@ -501,7 +501,8 @@
         "新密码正确更新",
         "修改后可以用新密码登录"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-14T12:00:00Z"
     },
     {
       "id": "F028",

@@ -187,6 +187,9 @@ void Session::handle_message(MessageType type, uint32_t sequence, const json& bo
         case MessageType::USER_UPDATE:
             handle_user_update(sequence, body);
             break;
+        case MessageType::PASSWORD_UPDATE:
+            handle_password_update(sequence, body);
+            break;
             
         // 好友相关
         case MessageType::FRIEND_ADD:
@@ -443,6 +446,35 @@ void Session::handle_user_update(uint32_t sequence, const json& body) {
         send(Protocol::create_response(MessageType::USER_UPDATE_RESPONSE, sequence, user.to_json()));
     } else {
         send(Protocol::create_error(sequence, 500, "Failed to update user info"));
+    }
+}
+
+void Session::handle_password_update(uint32_t sequence, const json& body) {
+    if (!is_authenticated()) {
+        send(Protocol::create_error(sequence, 401, "Not authenticated"));
+        return;
+    }
+    
+    std::string old_password = body.value("old_password", "");
+    std::string new_password = body.value("new_password", "");
+    
+    if (old_password.empty() || new_password.empty()) {
+        send(Protocol::create_error(sequence, 400, "Old password and new password are required"));
+        return;
+    }
+    
+    // 密码长度验证
+    if (new_password.length() < 6) {
+        send(Protocol::create_error(sequence, 400, "New password must be at least 6 characters"));
+        return;
+    }
+    
+    std::string error;
+    if (user_manager_->update_password(user_id_, old_password, new_password, error)) {
+        json response = {{"success", true}};
+        send(Protocol::create_response(MessageType::PASSWORD_UPDATE_RESPONSE, sequence, response));
+    } else {
+        send(Protocol::create_error(sequence, 400, error));
     }
 }
 
