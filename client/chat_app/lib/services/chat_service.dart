@@ -1951,6 +1951,34 @@ class ChatService extends ChangeNotifier {
     return false;
   }
   
+  // ==================== 相册和文件管理相关 ====================
+  
+  /// 获取本地图片消息（用于相册）
+  Future<List<Message>> getImageMessages({int limit = 100, int beforeTime = 0}) async {
+    return await _messageDb.getImageMessages(limit: limit, beforeTime: beforeTime);
+  }
+  
+  /// 获取本地文件消息（用于文件管理）
+  Future<List<Message>> getFileMessages({int limit = 100, int beforeTime = 0}) async {
+    return await _messageDb.getFileMessages(limit: limit, beforeTime: beforeTime);
+  }
+  
+  /// 清除所有本地缓存
+  Future<void> clearLocalCache() async {
+    await _messageDb.clearAllMessages();
+    notifyListeners();
+  }
+  
+  /// 获取本地缓存大小估算
+  Future<int> getLocalCacheSize() async {
+    // 简单估算：返回消息数量
+    int count = 0;
+    for (final key in _messages.keys) {
+      count += _messages[key]?.length ?? 0;
+    }
+    return count;
+  }
+  
   /// 获取收藏列表
   void loadFavorites({int limit = 50, int offset = 0}) {
     if (!_isAuthenticated) return;

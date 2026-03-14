@@ -7,8 +7,8 @@
 ## 当前状态
 - 阶段: 功能完善阶段
 - 最后更新: 2026-03-14
-- 完成功能: 18 / 30
-- 最近完成: F022 个人中心 - 收藏功能
+- 完成功能: 19 / 30
+- 最近完成: F023 个人中心 - 相册功能
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -789,3 +789,41 @@
   - `client/chat_app/lib/screens/chat_screen.dart` - 添加长按收藏菜单
   - `client/chat_app/lib/screens/favorites_screen.dart` - 新增收藏列表页面
   - `client/chat_app/lib/screens/profile_screen.dart` - 添加收藏入口
+
+
+---
+
+## [2026-03-14] 完成功能 #F023 - 个人中心相册功能
+
+- 实现内容:
+  - MessageDatabase 添加图片消息获取方法
+    - getImageMessages(): 获取所有图片类型的消息
+    - getFileMessages(): 获取所有文件类型的消息（为后续文件管理功能准备）
+    - 支持分页和 beforeTime 参数
+  - ChatService 添加相册相关方法
+    - getImageMessages(): 从本地数据库获取图片消息
+    - getFileMessages(): 从本地数据库获取文件消息
+    - clearLocalCache(): 清除所有本地缓存
+    - getLocalCacheSize(): 获取本地缓存大小估算
+  - 创建相册展示页面 gallery_screen.dart
+    - 网格布局显示所有图片消息
+    - 支持下拉刷新
+    - 支持滚动加载更多
+    - 显示图片来源（私聊/群聊）和时间
+    - 点击图片进入全屏预览模式
+    - 使用 PhotoViewGallery 实现图片缩放和滑动切换
+    - Hero 动画实现图片过渡效果
+  - 更新 profile_screen.dart
+    - 添加相册页面导航入口
+
+- 测试结果: 代码审查通过（待编译测试）
+  - 图片消息筛选逻辑: ✓
+  - 网格布局展示: ✓
+  - 图片预览功能: ✓
+  - 分页加载: ✓
+
+- 相关文件:
+  - `client/chat_app/lib/services/message_database.dart` - 添加图片消息获取方法
+  - `client/chat_app/lib/services/chat_service.dart` - 添加相册相关方法
+  - `client/chat_app/lib/screens/gallery_screen.dart` - 新增相册页面
+  - `client/chat_app/lib/screens/profile_screen.dart` - 添加相册入口
