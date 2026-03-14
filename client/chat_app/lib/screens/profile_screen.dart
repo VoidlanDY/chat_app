@@ -7,6 +7,7 @@ import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
 import 'favorites_screen.dart';
 import 'gallery_screen.dart';
+import 'file_manager_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -122,7 +123,11 @@ class ProfileScreen extends StatelessWidget {
                     context,
                     icon: Icons.folder_outlined,
                     title: '文件',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const FileManagerScreen()),
+                      );
+                    },
                   ),
                 ],
               ),

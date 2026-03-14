@@ -97,7 +97,7 @@ class ChatService extends ChangeNotifier {
   }
   
   // 替换URL中的localhost为实际的媒体服务器地址
-  String _fixMediaUrl(String url) {
+  String fixMediaUrl(String url) {
     if (url.contains("localhost")) {
       return url.replaceFirst(RegExp(r"http://localhost:\d+"), "http://$_mediaServerHost");
     }
@@ -1429,7 +1429,7 @@ class ChatService extends ChangeNotifier {
         _uploadedFileId = data['file_id'] as int?;
         // 替换localhost为实际的媒体服务器地址
         final rawUrl = data['url'] as String?;
-        _uploadedMediaUrl = rawUrl != null ? _fixMediaUrl(rawUrl) : null;
+        _uploadedMediaUrl = rawUrl != null ? fixMediaUrl(rawUrl) : null;
         _uploadError = null;
         debugPrint('Media uploaded successfully: $_uploadedMediaUrl');
       }
