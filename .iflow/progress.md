@@ -598,17 +598,60 @@
 ## [2026-03-14] 完成功能 #F020 - 极光推送离线消息通知
 - 实现内容:
   - 服务器端离线推送逻辑完善
-    - 私聊消息: 检测接收者离线状态，发送 JPush 通知
-    - 群聊消息: 检测群成员离线状态，发送 JPush 通知
-    - 支持图片和文件消息类型提示
-  - 双通道推送支持
-    - JPush (国内) 优先
-    - FCM (国外) 备选
-  - 推送内容格式
-    - 标题: 发送者名称/群组名称
-    - 正文: 消息内容预览 (截断 50 字符)
-    - 数据: type, sender_id, group_id 等
-
-- 相关文件:
-  - `server/src/session.cpp` - 离线推送逻辑
-  - `server/src/jpush_manager.cpp` - 推送发送实现
+        - 私聊消息: 检测接收者离线状态，发送 JPush 通知
+        - 群聊消息: 检测群成员离线状态，发送 JPush 通知
+        - 支持图片和文件消息类型提示
+      - 双通道推送支持
+        - JPush (国内) 优先
+        - FCM (国外) 备选
+      - 推送内容格式
+        - 标题: 发送者名称/群组名称
+        - 正文: 消息内容预览 (截断 50 字符)
+        - 数据: type, sender_id, group_id 等
+    
+    - 相关文件:
+      - `server/src/session.cpp` - 离线推送逻辑
+      - `server/src/jpush_manager.cpp` - 推送发送实现
+    
+    
+    ---
+    
+    ## [2026-03-14] JPush 极光推送重新实现
+    - 问题描述:
+      - jpush_flutter 版本过旧 (2.4.0)，不支持 Flutter 3.0+
+      - API 使用方式与官方文档不符
+      - 缺少必要的 Android 原生组件配置
+      - 缺少 proguard 混淆规则
+    
+    - 修复内容:
+      1. **更新 jpush_flutter 版本**
+         - 从 2.4.0 升级到 3.4.0
+         - 支持 Flutter 3.0+ 新 API
+    
+      2. **重写 JPushService.dart**
+         - 使用 `JPush.newJPush()` 创建实例 (3.x API)
+         - 导入 `jpush_interface.dart` 接口定义
+         - 改进事件处理器设置
+         - 添加别名/标签的持久化存储
+         - 优化 Registration ID 获取流程 (15次重试)
+    
+      3. **添加 Android 原生组件**
+         - `JPushService.kt`: 继承 JCommonService，保持推送通道稳定
+         - `JPushReceiver.kt`: 继承 JPushMessageReceiver，接收 alias/tag 回调
+    
+      4. **添加 proguard 混淆规则**
+         - 创建 `proguard-rules.pro` 文件
+         - 配置 JPush/JCore 包的混淆豁免
+    
+      5. **更新 AndroidManifest.xml**
+         - 注册 JPushService (独立进程 :pushcore)
+         - 注册 JPushReceiver (接收 RECEIVER_MESSAGE 广播)
+    
+    - 相关文件:
+      - `client/chat_app/pubspec.yaml` - 更新依赖版本
+      - `client/chat_app/lib/services/jpush_service.dart` - 重写服务
+      - `client/chat_app/android/app/src/main/kotlin/com/ey/echat/JPushService.kt` - 新增
+      - `client/chat_app/android/app/src/main/kotlin/com/ey/echat/JPushReceiver.kt` - 新增
+      - `client/chat_app/android/app/proguard-rules.pro` - 新增
+      - `client/chat_app/android/app/src/main/AndroidManifest.xml` - 更新配置
+    

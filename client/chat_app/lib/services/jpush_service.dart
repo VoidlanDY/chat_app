@@ -92,22 +92,37 @@ class JPushService {
       onReceiveMessage: (Map<String, dynamic> message) async {
         debugPrint('JPush 收到自定义消息: $message');
       },
+      // 通知授权状态回调 (iOS)
+      onReceiveNotificationAuthorization: (Map<String, dynamic> message) async {
+        debugPrint('JPush 通知授权状态: $message');
+      },
+      // 通知未显示回调
+      onNotifyMessageUnShow: (Map<String, dynamic> message) async {
+        debugPrint('JPush 通知未显示: $message');
+      },
       // 连接状态回调
       onConnected: (Map<String, dynamic> message) async {
         debugPrint('JPush 已连接: $message');
       },
-      // 通知授权状态回调 (iOS)
-      onNotifyMessageUnShow: (Map<String, dynamic> message) async {
-        debugPrint('JPush 通知未显示: $message');
+      // In-App Message 点击回调
+      onInAppMessageClick: (Map<String, dynamic> message) async {
+        debugPrint('JPush In-App 消息点击: $message');
       },
-      // 通知设置回调 (iOS)
-      onNotifyMessageOpened: (Map<String, dynamic> message) async {
-        debugPrint('JPush 通知设置: $message');
+      // In-App Message 显示回调
+      onInAppMessageShow: (Map<String, dynamic> message) async {
+        debugPrint('JPush In-App 消息显示: $message');
       },
-      // App 并未运行，通知点击回调
-      onAppOpenWithNotification: (Map<String, dynamic> message) async {
-        debugPrint('JPush App 通过通知打开: $message');
-        onNotificationOpened?.call(message);
+      // 通知按钮点击回调
+      onNotifyButtonClick: (Map<String, dynamic> message) async {
+        debugPrint('JPush 通知按钮点击: $message');
+      },
+      // 命令结果回调
+      onCommandResult: (Map<String, dynamic> message) async {
+        debugPrint('JPush 命令结果: $message');
+      },
+      // 设备 Token 回调
+      onReceiveDeviceToken: (Map<String, dynamic> message) async {
+        debugPrint('JPush 设备 Token: $message');
       },
     );
   }
@@ -133,9 +148,9 @@ class JPushService {
     }
     
     try {
-      // 使用新的 alias 设置序列号
-      final sequence = DateTime.now().millisecondsSinceEpoch;
-      await _jPush.setAlias(alias, sequence);
+      // 3.x API: setAlias 只需要一个参数
+      final result = await _jPush.setAlias(alias);
+      debugPrint('JPush 设置别名结果: $result');
       
       _alias = alias;
       
@@ -159,8 +174,9 @@ class JPushService {
     }
     
     try {
-      final sequence = DateTime.now().millisecondsSinceEpoch;
-      await _jPush.deleteAlias(sequence);
+      // 3.x API: deleteAlias 无参数
+      final result = await _jPush.deleteAlias();
+      debugPrint('JPush 删除别名结果: $result');
       
       _alias = null;
       
@@ -185,8 +201,9 @@ class JPushService {
     }
     
     try {
-      final sequence = DateTime.now().millisecondsSinceEpoch;
-      await _jPush.setTags(tags, sequence);
+      // 3.x API: setTags 只需要 tags 列表
+      final result = await _jPush.setTags(tags);
+      debugPrint('JPush 设置标签结果: $result');
       debugPrint('JPush 设置标签成功: $tags');
       return true;
     } catch (e) {
@@ -203,8 +220,9 @@ class JPushService {
     }
     
     try {
-      final sequence = DateTime.now().millisecondsSinceEpoch;
-      await _jPush.addTags(tags, sequence);
+      // 3.x API: addTags 只需要 tags 列表
+      final result = await _jPush.addTags(tags);
+      debugPrint('JPush 添加标签结果: $result');
       debugPrint('JPush 添加标签成功: $tags');
       return true;
     } catch (e) {
@@ -221,8 +239,9 @@ class JPushService {
     }
     
     try {
-      final sequence = DateTime.now().millisecondsSinceEpoch;
-      await _jPush.deleteTags(tags, sequence);
+      // 3.x API: deleteTags 只需要 tags 列表
+      final result = await _jPush.deleteTags(tags);
+      debugPrint('JPush 删除标签结果: $result');
       debugPrint('JPush 删除标签成功: $tags');
       return true;
     } catch (e) {
