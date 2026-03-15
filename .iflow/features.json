@@ -658,14 +658,15 @@
         "群聊消息正确广播",
         "离线用户收到推送通知"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-15T16:00:00Z"
     }
   ],
   "statistics": {
     "total": 35,
-    "completed": 24,
+    "completed": 25,
     "inProgress": 0,
-    "pending": 11,
+    "pending": 10,
     "byPriority": {
       "high": 18,
       "medium": 9,

@@ -7,8 +7,8 @@
 ## 当前状态
 - 阶段: Gateway 架构重构阶段
 - 最后更新: 2026-03-15
-- 完成功能: 24 / 35
-- 最近完成: F034 客户端 WebSocket 连接改造
+- 完成功能: 25 / 35
+- 最近完成: F035 Gateway 消息路由和处理
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -29,8 +29,8 @@
 - 缺少应用图标和启动画面资源
 
 ## 下一步计划
-- F034 客户端 WebSocket 连接改造
-- F035 Gateway 消息路由和处理
+- F025 设置页面 - 功能完善
+- F026 编辑资料 - 头像上传
 
 ## [2026-03-15] 完成功能 #F033 - WebSocket 完整支持
 - 实现内容:
@@ -2540,5 +2540,38 @@
 
 
   - `client/chat_app/lib/services/chat_service.dart` - 使用新服务
+
+
+
+---
+
+## [2026-03-15] 完成功能 #F035 - Gateway 消息路由和处理
+
+- 实现内容:
+  - 添加用户注册消息处理器 (handle_register)
+  - 添加好友列表消息处理器 (handle_friend_list)
+  - 添加好友请求列表消息处理器 (handle_friend_requests)
+  - 添加群组列表消息处理器 (handle_group_list)
+  - 添加群成员列表消息处理器 (handle_group_members)
+  - 添加用户搜索路由 (handle_user_search)
+  - 添加私聊历史消息处理器 (handle_private_history)
+  - 添加群聊历史消息处理器 (handle_group_history)
+  - 修复 DatabasePool 构造函数参数问题
+  - 修复 JPush/FCM 推送通知调用
+  - 添加 WsConnection::is_closed() 公共方法
+
+- 消息类型支持:
+  - 认证: login, register
+  - 消息: privateMessage, groupMessage, privateHistory, groupHistory
+  - 好友: friendRequest, friendAccept, friendReject, friendRemove, friendList, friendRequests
+  - 群组: createGroup, inviteGroupMembers, groupKick, groupQuit, groupDismiss, groupSetAdmin, groupTransferOwner, groupList, groupMembers
+  - 其他: heartbeat, fcmTokenRegister, userSearch, favoriteAdd, favoriteRemove, favoriteList, passwordUpdate
+
+- 相关文件:
+  - `server/src/gateway_main.cpp` - 添加消息处理器
+  - `server/include/websocket_server.hpp` - 添加 is_closed() 方法
+  - `server/src/websocket_server.cpp` - 使用 is_closed()
+  - `server/src/bot_manager.cpp` - 移除 Server 依赖
+  - `server/xmake.lua` - 修复编译配置
 
 
