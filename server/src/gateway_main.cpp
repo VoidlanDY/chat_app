@@ -127,8 +127,10 @@ void handle_login(chat::WsConnection::ptr conn, const json& msg) {
     std::string password = msg["password"];
     
     // 验证用户
-    chat::User user;
-    if (!g_user_manager->login(username, password, user)) {
+    uint64_t user_id_result = 0;
+    chat::UserInfo user;
+    std::string error;
+    if (!g_user_manager->login(username, password, user_id_result, user, error)) {
         conn->send_text(R"({"type":"loginResponse","success":false,"error":"Invalid credentials"})");
         return;
     }
@@ -146,7 +148,7 @@ void handle_login(chat::WsConnection::ptr conn, const json& msg) {
     conn->set_authenticated(true);
     
     // 更新在线状态
-    g_user_manager->set_online(user.user_id, true);
+    g_user_manager->set_online_status(user.user_id, chat::OnlineStatus::ONLINE);
     
     // 关联连接
     // (WebSocketServer 会自动管理 user_connections_)
@@ -170,7 +172,7 @@ void handle_login(chat::WsConnection::ptr conn, const json& msg) {
     std::cout << "[WS] User logged in: " << username << " (id=" << user.user_id << ")" << std::endl;
     
     // 发送待处理的好友请求
-    auto pending_requests = g_friend_manager->get_pending_requests(user.user_id);
+    auto pending_requests = g_friend_manager->get_friend_requests(user.user_id);
     if (!pending_requests.empty()) {
         for (const auto& req : pending_requests) {
             json notification = {
@@ -192,22 +194,29 @@ void handle_private_message(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t sender_id = conn->get_user_id();
     uint64_t receiver_id = msg["receiver_id"].get<uint64_t>();
     std::string content = msg["content"];
-    int message_type = msg.value("message_type", 0);
+    int message_type_int = msg.value("message_type", 0);
     std::string media_url = msg.value("media_url", "");
-    std::string media_type = msg.value("media_type", "");
+    std::string media_type_str = msg.value("media_type", "");
     
     // 保存消息
-    uint64_t message_id = g_message_manager->send_private_message(
-        sender_id, receiver_id, content, message_type, media_url, media_type);
+    chat::Message message;
+    message.sender_id = sender_id;
+    message.receiver_id = receiver_id;
+    message.content = content;
+    message.media_type = static_cast<chat::MediaType>(message_type_int);
+    message.media_url = media_url;
+    message.status = chat::MessageStatus::SENT;
     
-    if (message_id == 0) {
+    if (!g_database->save_private_message(message)) {
         conn->send_text(R"({"type":"error","message":"Failed to send message"})");
         return;
     }
     
+    uint64_t message_id = message.message_id;
+    
     // 获取发送者信息
-    chat::User sender;
-    g_user_manager->get_user(sender_id, sender);
+    chat::UserInfo sender;
+    g_user_manager->get_user_info(sender_id, sender);
     
     // 构建消息
     json msg_response = {
@@ -216,9 +225,9 @@ void handle_private_message(chat::WsConnection::ptr conn, const json& msg) {
         {"sender_id", sender_id},
         {"receiver_id", receiver_id},
         {"content", content},
-        {"message_type", message_type},
+        {"message_type", message_type_int},
         {"media_url", media_url},
-        {"media_type", media_type},
+        {"media_type", media_type_str},
         {"created_at", std::time(nullptr)}
     };
     
@@ -236,9 +245,9 @@ void handle_private_message(chat::WsConnection::ptr conn, const json& msg) {
             {"sender_nickname", sender.nickname},
             {"sender_avatar", sender.avatar_url},
             {"content", content},
-            {"message_type", message_type},
+            {"message_type", message_type_int},
             {"media_url", media_url},
-            {"media_type", media_type},
+            {"media_type", media_type_str},
             {"created_at", std::time(nullptr)}
         };
         receiver_conn->send_text(msg_notification.dump());
@@ -275,9 +284,9 @@ void handle_group_message(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t sender_id = conn->get_user_id();
     uint64_t group_id = msg["group_id"].get<uint64_t>();
     std::string content = msg["content"];
-    int message_type = msg.value("message_type", 0);
+    int message_type_int = msg.value("message_type", 0);
     std::string media_url = msg.value("media_url", "");
-    std::string media_type = msg.value("media_type", "");
+    std::string media_type_str = msg.value("media_type", "");
     
     // 检查是否是群成员
     if (!g_group_manager->is_member(group_id, sender_id)) {
@@ -286,23 +295,31 @@ void handle_group_message(chat::WsConnection::ptr conn, const json& msg) {
     }
     
     // 保存消息
-    uint64_t message_id = g_message_manager->send_group_message(
-        sender_id, group_id, content, message_type, media_url, media_type);
+    chat::Message message;
+    message.sender_id = sender_id;
+    message.group_id = group_id;
+    message.receiver_id = group_id;
+    message.content = content;
+    message.media_type = static_cast<chat::MediaType>(message_type_int);
+    message.media_url = media_url;
+    message.status = chat::MessageStatus::SENT;
     
-    if (message_id == 0) {
+    if (!g_database->save_group_message(message)) {
         conn->send_text(R"({"type":"error","message":"Failed to send message"})");
         return;
     }
     
-    // 获取发送者和群组信息
-    chat::User sender;
-    g_user_manager->get_user(sender_id, sender);
+    uint64_t message_id = message.message_id;
     
-    chat::Group group;
-    g_group_manager->get_group(group_id, group);
+    // 获取发送者和群组信息
+    chat::UserInfo sender;
+    g_user_manager->get_user_info(sender_id, sender);
+    
+    chat::GroupInfo group;
+    g_group_manager->get_group_info(group_id, group);
     
     // 获取群成员列表
-    auto members = g_group_manager->get_members(group_id);
+    auto member_ids = g_group_manager->get_group_members(group_id);
     
     // 构建消息
     json msg_response = {
@@ -311,9 +328,9 @@ void handle_group_message(chat::WsConnection::ptr conn, const json& msg) {
         {"group_id", group_id},
         {"sender_id", sender_id},
         {"content", content},
-        {"message_type", message_type},
+        {"message_type", message_type_int},
         {"media_url", media_url},
-        {"media_type", media_type},
+        {"media_type", media_type_str},
         {"created_at", std::time(nullptr)}
     };
     
@@ -321,31 +338,31 @@ void handle_group_message(chat::WsConnection::ptr conn, const json& msg) {
     conn->send_text(msg_response.dump());
     
     // 广播给所有在线群成员
-    for (const auto& member : members) {
-        if (member.user_id == sender_id) continue;
+    for (uint64_t member_id : member_ids) {
+        if (member_id == sender_id) continue;
         
-        auto member_conn = g_ws_server->get_connection(member.user_id);
+        auto member_conn = g_ws_server->get_connection(member_id);
         if (member_conn) {
             json msg_notification = {
                 {"type", "groupMessage"},
                 {"message_id", message_id},
                 {"group_id", group_id},
-                {"group_name", group.name},
+                {"group_name", group.group_name},
                 {"sender_id", sender_id},
                 {"sender_username", sender.username},
                 {"sender_nickname", sender.nickname},
                 {"sender_avatar", sender.avatar_url},
                 {"content", content},
-                {"message_type", message_type},
+                {"message_type", message_type_int},
                 {"media_url", media_url},
-                {"media_type", media_type},
+                {"media_type", media_type_str},
                 {"created_at", std::time(nullptr)}
             };
             member_conn->send_text(msg_notification.dump());
         } else {
             // 离线推送
             if (g_jpush_manager && g_jpush_manager->is_configured()) {
-                std::string title = "[" + group.name + "] " + 
+                std::string title = "[" + group.group_name + "] " + 
                     (sender.nickname.empty() ? sender.username : sender.nickname);
                 std::string body = content;
                 if (body.length() > 50) body = body.substr(0, 50) + "...";
@@ -356,7 +373,7 @@ void handle_group_message(chat::WsConnection::ptr conn, const json& msg) {
                     {"sender_id", sender_id}
                 };
                 
-                g_jpush_manager->send_to_user(member.user_id, title, body, extra.dump());
+                g_jpush_manager->send_to_user(member_id, title, body, extra.dump());
             }
         }
     }
@@ -369,22 +386,25 @@ void handle_friend_request(chat::WsConnection::ptr conn, const json& msg) {
     std::string message = msg.value("message", "");
     
     // 发送好友请求
-    uint64_t request_id = g_friend_manager->send_request(from_id, to_id, message);
-    
-    if (request_id == 0) {
-        conn->send_text(R"({"type":"error","message":"Failed to send friend request"})");
+    std::string error;
+    if (!g_friend_manager->add_friend_request(from_id, to_id, error)) {
+        json err_response = {
+            {"type", "friendAddResponse"},
+            {"success", false},
+            {"error", error}
+        };
+        conn->send_text(err_response.dump());
         return;
     }
     
     // 获取发送者信息
-    chat::User from_user;
-    g_user_manager->get_user(from_id, from_user);
+    chat::UserInfo from_user;
+    g_user_manager->get_user_info(from_id, from_user);
     
     // 发送确认
     json response = {
         {"type", "friendAddResponse"},
-        {"success", true},
-        {"request_id", request_id}
+        {"success", true}
     };
     conn->send_text(response.dump());
     
@@ -393,7 +413,6 @@ void handle_friend_request(chat::WsConnection::ptr conn, const json& msg) {
     if (to_conn) {
         json notification = {
             {"type", "friendRequestNotification"},
-            {"request_id", request_id},
             {"from_user_id", from_id},
             {"from_username", from_user.username},
             {"from_nickname", from_user.nickname},
@@ -413,9 +432,10 @@ void handle_friend_request(chat::WsConnection::ptr conn, const json& msg) {
 // 处理接受好友请求
 void handle_friend_accept(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t user_id = conn->get_user_id();
-    uint64_t request_id = msg["request_id"].get<uint64_t>();
+    uint64_t from_user_id = msg["from_user_id"].get<uint64_t>();
     
-    if (g_friend_manager->accept_request(request_id, user_id)) {
+    std::string error;
+    if (g_friend_manager->accept_friend_request(user_id, from_user_id, error)) {
         json response = {
             {"type", "friendAcceptResponse"},
             {"success", true}
@@ -423,34 +443,36 @@ void handle_friend_accept(chat::WsConnection::ptr conn, const json& msg) {
         conn->send_text(response.dump());
         
         // 通知对方
-        // 获取请求信息
-        auto request = g_friend_manager->get_request(request_id);
-        if (request.from_user_id > 0) {
-            auto from_conn = g_ws_server->get_connection(request.from_user_id);
-            if (from_conn) {
-                chat::User accepter;
-                g_user_manager->get_user(user_id, accepter);
-                
-                json notification = {
-                    {"type", "friendAcceptNotification"},
-                    {"user_id", user_id},
-                    {"username", accepter.username},
-                    {"nickname", accepter.nickname}
-                };
-                from_conn->send_text(notification.dump());
-            }
+        auto from_conn = g_ws_server->get_connection(from_user_id);
+        if (from_conn) {
+            chat::UserInfo accepter;
+            g_user_manager->get_user_info(user_id, accepter);
+            
+            json notification = {
+                {"type", "friendAcceptNotification"},
+                {"user_id", user_id},
+                {"username", accepter.username},
+                {"nickname", accepter.nickname}
+            };
+            from_conn->send_text(notification.dump());
         }
     } else {
-        conn->send_text(R"({"type":"friendAcceptResponse","success":false,"error":"Failed to accept"})");
+        json err_response = {
+            {"type", "friendAcceptResponse"},
+            {"success", false},
+            {"error", error}
+        };
+        conn->send_text(err_response.dump());
     }
 }
 
 // 处理拒绝好友请求
 void handle_friend_reject(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t user_id = conn->get_user_id();
-    uint64_t request_id = msg["request_id"].get<uint64_t>();
+    uint64_t from_user_id = msg["from_user_id"].get<uint64_t>();
     
-    if (g_friend_manager->reject_request(request_id, user_id)) {
+    std::string error;
+    if (g_friend_manager->reject_friend_request(user_id, from_user_id, error)) {
         conn->send_text(R"({"type":"friendRejectResponse","success":true})");
     } else {
         conn->send_text(R"({"type":"friendRejectResponse","success":false})");
@@ -462,7 +484,8 @@ void handle_friend_remove(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t user_id = conn->get_user_id();
     uint64_t friend_id = msg["friend_id"].get<uint64_t>();
     
-    if (g_friend_manager->remove_friend(user_id, friend_id)) {
+    std::string error;
+    if (g_friend_manager->remove_friend(user_id, friend_id, error)) {
         conn->send_text(R"({"type":"friendRemoveResponse","success":true})");
     } else {
         conn->send_text(R"({"type":"friendRemoveResponse","success":false})");
@@ -475,9 +498,9 @@ void handle_create_group(chat::WsConnection::ptr conn, const json& msg) {
     std::string name = msg["name"];
     std::string description = msg.value("description", "");
     
-    uint64_t group_id = g_group_manager->create_group(name, owner_id, description);
-    
-    if (group_id > 0) {
+    uint64_t group_id = 0;
+    std::string error;
+    if (g_group_manager->create_group(owner_id, name, description, group_id, error)) {
         json response = {
             {"type", "createGroupResponse"},
             {"success", true},
@@ -495,20 +518,28 @@ void handle_invite_group_members(chat::WsConnection::ptr conn, const json& msg) 
     uint64_t group_id = msg["group_id"].get<uint64_t>();
     auto user_ids = msg["user_ids"].get<std::vector<uint64_t>>();
     
-    if (g_group_manager->add_members(group_id, user_ids, inviter_id)) {
+    std::string error;
+    bool all_success = true;
+    for (uint64_t user_id : user_ids) {
+        if (!g_group_manager->join_group(group_id, user_id, error)) {
+            all_success = false;
+        }
+    }
+    
+    if (all_success) {
         conn->send_text(R"({"type":"inviteGroupMembersResponse","success":true})");
         
         // 通知被邀请的用户
         for (uint64_t user_id : user_ids) {
             auto user_conn = g_ws_server->get_connection(user_id);
             if (user_conn) {
-                chat::Group group;
-                g_group_manager->get_group(group_id, group);
+                chat::GroupInfo group;
+                g_group_manager->get_group_info(group_id, group);
                 
                 json notification = {
                     {"type", "groupInviteNotification"},
                     {"group_id", group_id},
-                    {"group_name", group.name},
+                    {"group_name", group.group_name},
                     {"inviter_id", inviter_id}
                 };
                 user_conn->send_text(notification.dump());
@@ -525,19 +556,20 @@ void handle_group_kick(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t group_id = msg["group_id"].get<uint64_t>();
     uint64_t user_id = msg["user_id"].get<uint64_t>();
     
-    if (g_group_manager->kick_member(group_id, user_id, operator_id)) {
+    std::string error;
+    if (g_group_manager->remove_member(operator_id, group_id, user_id, error)) {
         conn->send_text(R"({"type":"groupKickResponse","success":true})");
         
         // 通知被踢出的用户
         auto user_conn = g_ws_server->get_connection(user_id);
         if (user_conn) {
-            chat::Group group;
-            g_group_manager->get_group(group_id, group);
+            chat::GroupInfo group;
+            g_group_manager->get_group_info(group_id, group);
             
             json notification = {
                 {"type", "groupKickedNotification"},
                 {"group_id", group_id},
-                {"group_name", group.name}
+                {"group_name", group.group_name}
             };
             user_conn->send_text(notification.dump());
         }
@@ -551,7 +583,8 @@ void handle_group_quit(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t user_id = conn->get_user_id();
     uint64_t group_id = msg["group_id"].get<uint64_t>();
     
-    if (g_group_manager->quit_group(group_id, user_id)) {
+    std::string error;
+    if (g_group_manager->leave_group(group_id, user_id, error)) {
         conn->send_text(R"({"type":"groupQuitResponse","success":true})");
     } else {
         conn->send_text(R"({"type":"groupQuitResponse","success":false})");
@@ -563,7 +596,8 @@ void handle_group_dismiss(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t owner_id = conn->get_user_id();
     uint64_t group_id = msg["group_id"].get<uint64_t>();
     
-    if (g_group_manager->dismiss_group(group_id, owner_id)) {
+    std::string error;
+    if (g_group_manager->dismiss_group(owner_id, group_id, error)) {
         conn->send_text(R"({"type":"groupDismissResponse","success":true})");
     } else {
         conn->send_text(R"({"type":"groupDismissResponse","success":false})");
@@ -577,7 +611,8 @@ void handle_group_set_admin(chat::WsConnection::ptr conn, const json& msg) {
     uint64_t user_id = msg["user_id"].get<uint64_t>();
     bool is_admin = msg["is_admin"].get<bool>();
     
-    if (g_group_manager->set_admin(group_id, user_id, operator_id, is_admin)) {
+    std::string error;
+    if (g_group_manager->set_admin(operator_id, group_id, user_id, is_admin, error)) {
         json response = {
             {"type", "groupSetAdminResponse"},
             {"success", true}
@@ -594,7 +629,8 @@ void handle_group_transfer_owner(chat::WsConnection::ptr conn, const json& msg) 
     uint64_t group_id = msg["group_id"].get<uint64_t>();
     uint64_t new_owner_id = msg["new_owner_id"].get<uint64_t>();
     
-    if (g_group_manager->transfer_owner(group_id, owner_id, new_owner_id)) {
+    std::string error;
+    if (g_group_manager->transfer_owner(owner_id, group_id, new_owner_id, error)) {
         json response = {
             {"type", "groupTransferOwnerResponse"},
             {"success", true}
@@ -682,29 +718,23 @@ void handle_password_update(chat::WsConnection::ptr conn, const json& msg) {
     std::string old_password = msg["old_password"];
     std::string new_password = msg["new_password"];
     
-    // 验证旧密码
-    chat::User user;
-    if (!g_user_manager->get_user(user_id, user)) {
-        conn->send_text(R"({"type":"passwordUpdateResponse","success":false,"error":"User not found"})");
-        return;
-    }
-    
-    if (!g_user_manager->verify_password(old_password, user.password_hash)) {
-        conn->send_text(R"({"type":"passwordUpdateResponse","success":false,"error":"Invalid old password"})");
-        return;
-    }
-    
     // 验证新密码长度
     if (new_password.length() < 6) {
         conn->send_text(R"({"type":"passwordUpdateResponse","success":false,"error":"Password too short"})");
         return;
     }
     
-    // 更新密码
-    if (g_user_manager->update_password(user_id, new_password)) {
+    // 更新密码 (内部会验证旧密码)
+    std::string error;
+    if (g_user_manager->update_password(user_id, old_password, new_password, error)) {
         conn->send_text(R"({"type":"passwordUpdateResponse","success":true})");
     } else {
-        conn->send_text(R"({"type":"passwordUpdateResponse","success":false,"error":"Failed to update password"})");
+        json err_response = {
+            {"type", "passwordUpdateResponse"},
+            {"success", false},
+            {"error", error}
+        };
+        conn->send_text(err_response.dump());
     }
 }
 
@@ -742,7 +772,7 @@ void on_disconnect(chat::WsConnection::ptr conn) {
     
     if (user_id > 0 && conn->is_authenticated()) {
         // 更新用户状态为离线
-        g_user_manager->set_online(user_id, false);
+        g_user_manager->set_online_status(user_id, chat::OnlineStatus::OFFLINE);
         std::cout << "[WS] User disconnected: " << user_id << std::endl;
     } else {
         std::cout << "[WS] Client disconnected: " << conn->get_client_ip() << std::endl;
