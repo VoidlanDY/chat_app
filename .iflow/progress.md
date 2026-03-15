@@ -6,9 +6,9 @@
 
 ## 当前状态
 - 阶段: Gateway 架构重构阶段
-- 最后更新: 2026-03-14
-- 完成功能: 22 / 35
-- 最近完成: F032 Gateway 统一入口架构
+- 最后更新: 2026-03-15
+- 完成功能: 23 / 35
+- 最近完成: F033 WebSocket 完整支持
 
 ## 已完成工作
 - 2026-03-08 项目初始化完成
@@ -29,9 +29,26 @@
 - 缺少应用图标和启动画面资源
 
 ## 下一步计划
-- F017 极光推送 - 服务器端配置
-- F018 极光推送 - 客户端初始化
-- F019 极光推送 - Token 注册流程
+- F034 客户端 WebSocket 连接改造
+- F035 Gateway 消息路由和处理
+
+## [2026-03-15] 完成功能 #F033 - WebSocket 完整支持
+- 实现内容:
+  - 创建独立的 WebSocketServer 组件
+  - 实现完整的 WebSocket 帧解析 (RFC 6455)
+  - 支持文本/二进制/控制帧 (Ping/Pong/Close)
+  - 实现心跳检测和超时断开
+  - 实现消息分片重组
+  - 重构 gateway_main.cpp 整合 WebSocket + HTTP Gateway
+  - 修复 bot_manager.hpp 循环依赖问题
+- 架构:
+  - WebSocket 端口: 8888 (原生 socket)
+  - HTTP Gateway 端口: 8889 (libmicrohttpd)
+- 相关文件:
+  - `server/include/websocket_server.hpp` - WebSocket 服务器头文件
+  - `server/src/websocket_server.cpp` - WebSocket 服务器实现
+  - `server/src/gateway_main.cpp` - 整合入口
+  - `server/include/bot_manager.hpp` - 移除循环依赖
 
 ## [2026-03-08] 完成功能 #F001 - MySQL 数据库初始化和连接配置
 - 实现内容:

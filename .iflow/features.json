@@ -617,7 +617,8 @@
         "能发送和接收 WebSocket 消息",
         "心跳机制正常工作"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-15T12:00:00Z"
     },
     {
       "id": "F034",
@@ -660,9 +661,9 @@
   ],
   "statistics": {
     "total": 35,
-    "completed": 22,
+    "completed": 23,
     "inProgress": 0,
-    "pending": 13,
+    "pending": 12,
     "byPriority": {
       "high": 18,
       "medium": 9,
