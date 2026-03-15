@@ -409,7 +409,7 @@ class ChatService extends ChangeNotifier {
           username: body['username'] as String? ?? '',
           nickname: body['nickname'] as String? ?? '',
           avatarUrl: body['avatar_url'] as String? ?? '',
-          status: 'ONLINE',
+          onlineStatus: 1, // ONLINE
         );
       }
       _isAuthenticated = true;

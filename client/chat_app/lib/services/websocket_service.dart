@@ -27,6 +27,7 @@ class WsMessageType {
   
   // 好友相关
   static const String friendRequest = 'friendRequest';
+  static const String friendAdd = 'friendAdd';  // 别名
   static const String friendAddResponse = 'friendAddResponse';
   static const String friendRequestNotification = 'friendRequestNotification';
   static const String friendAccept = 'friendAccept';
@@ -51,12 +52,16 @@ class WsMessageType {
   
   // 群组相关
   static const String createGroup = 'createGroup';
+  static const String groupCreate = 'createGroup';  // 别名
   static const String createGroupResponse = 'createGroupResponse';
   static const String inviteGroupMembers = 'inviteGroupMembers';
+  static const String groupAddMember = 'inviteGroupMembers';  // 别名
   static const String inviteGroupMembersResponse = 'inviteGroupMembersResponse';
   static const String groupKick = 'groupKick';
+  static const String groupRemoveMember = 'groupKick';  // 别名
   static const String groupKickResponse = 'groupKickResponse';
   static const String groupQuit = 'groupQuit';
+  static const String groupLeave = 'groupQuit';  // 别名
   static const String groupQuitResponse = 'groupQuitResponse';
   static const String groupDismiss = 'groupDismiss';
   static const String groupDismissResponse = 'groupDismissResponse';
