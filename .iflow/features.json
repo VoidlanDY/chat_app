@@ -637,7 +637,9 @@
         "消息收发正常",
         "重连机制正常"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-15T15:00:00Z",
+      "notes": "客户端代码已完成，服务器端需要补充消息处理器"
     },
     {
       "id": "F035",
@@ -661,9 +663,9 @@
   ],
   "statistics": {
     "total": 35,
-    "completed": 23,
+    "completed": 24,
     "inProgress": 0,
-    "pending": 12,
+    "pending": 11,
     "byPriority": {
       "high": 18,
       "medium": 9,
