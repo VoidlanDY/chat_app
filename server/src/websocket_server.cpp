@@ -490,7 +490,7 @@ void WebSocketServer::handle_new_connection(int client_socket, const std::string
     
     // 消息循环
     char recv_buffer[65536];
-    while (running_ && !conn->closed_) {
+    while (running_ && !conn->is_closed()) {
         struct pollfd pfd;
         pfd.fd = client_socket;
         pfd.events = POLLIN;

@@ -1,0 +1,16 @@
+{
+    cmdlines = {
+        "xmake build gateway_server",
+        "xmake ",
+        "xmake build gateway_server",
+        "xmake build gateway_server",
+        "xmake build gateway_server",
+        "xmake build gateway_server",
+        "xmake build gateway_server",
+        "xmake build gateway_server",
+        "xmake -r gateway_server",
+        "xmake build chat_server",
+        "xmake build chat_server",
+        "xmake -r chat_server"
+    }
+}

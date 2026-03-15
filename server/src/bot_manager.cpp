@@ -1,4 +1,5 @@
 #include "bot_manager.hpp"
+#include "server.hpp"
 #include "user_manager.hpp"
 #include "friend_manager.hpp"
 #include "message_manager.hpp"

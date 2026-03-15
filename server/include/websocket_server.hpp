@@ -92,6 +92,9 @@ public:
     std::chrono::steady_clock::time_point last_activity() const { return last_activity_; }
     void update_activity() { last_activity_ = std::chrono::steady_clock::now(); }
     
+    // 检查是否已关闭
+    bool is_closed() const { return closed_.load(); }
+    
 private:
     // 解析 WebSocket 帧
     bool parse_frame(const uint8_t* data, size_t len, size_t& consumed);

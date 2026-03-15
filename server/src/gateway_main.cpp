@@ -22,7 +22,7 @@ using json = nlohmann::json;
 // 全局服务器实例
 std::shared_ptr<chat::WebSocketServer> g_ws_server;
 std::shared_ptr<chat::HttpGateway> g_http_gateway;
-asio::io_context g_io_context;  // 用于 BotManager
+asio::io_context g_io_context;
 
 // 依赖管理器
 std::shared_ptr<chat::Database> g_database;
@@ -31,9 +31,38 @@ std::shared_ptr<chat::UserManager> g_user_manager;
 std::shared_ptr<chat::MessageManager> g_message_manager;
 std::shared_ptr<chat::GroupManager> g_group_manager;
 std::shared_ptr<chat::FriendManager> g_friend_manager;
-std::shared_ptr<chat::BotManager> g_bot_manager;
 std::shared_ptr<chat::FcmManager> g_fcm_manager;
 std::shared_ptr<chat::JPushManager> g_jpush_manager;
+
+// 前向声明
+void handle_login(chat::WsConnection::ptr conn, const json& msg);
+void handle_register(chat::WsConnection::ptr conn, const json& msg);
+void handle_private_message(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_message(chat::WsConnection::ptr conn, const json& msg);
+void handle_friend_list(chat::WsConnection::ptr conn, const json& msg);
+void handle_friend_requests(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_list(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_members(chat::WsConnection::ptr conn, const json& msg);
+void handle_user_search(chat::WsConnection::ptr conn, const json& msg);
+void handle_private_history(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_history(chat::WsConnection::ptr conn, const json& msg);
+void handle_friend_request(chat::WsConnection::ptr conn, const json& msg);
+void handle_friend_accept(chat::WsConnection::ptr conn, const json& msg);
+void handle_friend_reject(chat::WsConnection::ptr conn, const json& msg);
+void handle_friend_remove(chat::WsConnection::ptr conn, const json& msg);
+void handle_create_group(chat::WsConnection::ptr conn, const json& msg);
+void handle_invite_group_members(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_kick(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_quit(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_dismiss(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_set_admin(chat::WsConnection::ptr conn, const json& msg);
+void handle_group_transfer_owner(chat::WsConnection::ptr conn, const json& msg);
+void handle_heartbeat(chat::WsConnection::ptr conn, const json& msg);
+void handle_fcm_token_register(chat::WsConnection::ptr conn, const json& msg);
+void handle_favorite_add(chat::WsConnection::ptr conn, const json& msg);
+void handle_favorite_remove(chat::WsConnection::ptr conn, const json& msg);
+void handle_favorite_list(chat::WsConnection::ptr conn, const json& msg);
+void handle_password_update(chat::WsConnection::ptr conn, const json& msg);
 
 void signal_handler(int signal) {
     std::cout << "\nShutting down..." << std::endl;
@@ -59,6 +88,12 @@ void handle_ws_message(chat::WsConnection::ptr conn, const std::string& message)
             return;
         }
         
+        // 处理注册（不需要认证）
+        if (type == "register") {
+            handle_register(conn, msg);
+            return;
+        }
+        
         // 其他消息需要认证
         if (!conn->is_authenticated()) {
             conn->send_text(R"({"type":"error","message":"Not authenticated"})");
@@ -72,6 +107,20 @@ void handle_ws_message(chat::WsConnection::ptr conn, const std::string& message)
             handle_private_message(conn, msg);
         } else if (type == "groupMessage") {
             handle_group_message(conn, msg);
+        } else if (type == "friendList") {
+            handle_friend_list(conn, msg);
+        } else if (type == "friendRequests") {
+            handle_friend_requests(conn, msg);
+        } else if (type == "groupList") {
+            handle_group_list(conn, msg);
+        } else if (type == "groupMembers") {
+            handle_group_members(conn, msg);
+        } else if (type == "userSearch") {
+            handle_user_search(conn, msg);
+        } else if (type == "privateHistory") {
+            handle_private_history(conn, msg);
+        } else if (type == "groupHistory") {
+            handle_group_history(conn, msg);
         } else if (type == "friendRequest") {
             handle_friend_request(conn, msg);
         } else if (type == "friendAccept") {
@@ -114,6 +163,55 @@ void handle_ws_message(chat::WsConnection::ptr conn, const std::string& message)
         std::cerr << "[WS] JSON parse error: " << e.what() << std::endl;
         conn->send_text(R"({"type":"error","message":"Invalid JSON"})");
     }
+}
+
+// 处理用户注册
+void handle_register(chat::WsConnection::ptr conn, const json& msg) {
+    if (!msg.contains("username") || !msg.contains("password")) {
+        conn->send_text(R"({"type":"registerResponse","success":false,"error":"Missing username or password"})");
+        return;
+    }
+    
+    std::string username = msg["username"];
+    std::string password = msg["password"];
+    std::string nickname = msg.value("nickname", username);
+    
+    // 验证用户名长度
+    if (username.length() < 3 || username.length() > 50) {
+        conn->send_text(R"({"type":"registerResponse","success":false,"error":"Username must be 3-50 characters"})");
+        return;
+    }
+    
+    // 验证密码长度
+    if (password.length() < 6) {
+        conn->send_text(R"({"type":"registerResponse","success":false,"error":"Password must be at least 6 characters"})");
+        return;
+    }
+    
+    // 注册用户
+    uint64_t user_id = 0;
+    std::string error;
+    if (!g_user_manager->register_user(username, password, nickname, user_id, error)) {
+        json err_response = {
+            {"type", "registerResponse"},
+            {"success", false},
+            {"error", error}
+        };
+        conn->send_text(err_response.dump());
+        return;
+    }
+    
+    // 注册成功
+    json response = {
+        {"type", "registerResponse"},
+        {"success", true},
+        {"user_id", user_id},
+        {"username", username},
+        {"nickname", nickname}
+    };
+    
+    conn->send_text(response.dump());
+    std::cout << "[WS] User registered: " << username << " (id=" << user_id << ")" << std::endl;
 }
 
 // 处理登录
@@ -174,17 +272,18 @@ void handle_login(chat::WsConnection::ptr conn, const json& msg) {
     // 发送待处理的好友请求
     auto pending_requests = g_friend_manager->get_friend_requests(user.user_id);
     if (!pending_requests.empty()) {
-        for (const auto& req : pending_requests) {
-            json notification = {
-                {"type", "friendRequestNotification"},
-                {"request_id", req.request_id},
-                {"from_user_id", req.from_user_id},
-                {"from_username", req.from_username},
-                {"from_nickname", req.from_nickname},
-                {"message", req.message},
-                {"created_at", req.created_at}
-            };
-            conn->send_text(notification.dump());
+        for (const auto& [from_user, relation] : pending_requests) {
+            if (relation.status == chat::FriendStatus::PENDING) {
+                json notification = {
+                    {"type", "friendRequestNotification"},
+                    {"from_user_id", from_user.user_id},
+                    {"from_username", from_user.username},
+                    {"from_nickname", from_user.nickname},
+                    {"from_avatar", from_user.avatar_url},
+                    {"created_at", relation.created_at}
+                };
+                conn->send_text(notification.dump());
+            }
         }
     }
 }
@@ -258,24 +357,24 @@ void handle_private_message(chat::WsConnection::ptr conn, const json& msg) {
             std::string body = content;
             if (body.length() > 50) body = body.substr(0, 50) + "...";
             
-            json extra = {
+            std::map<std::string, std::string> data = {
                 {"type", "private_message"},
-                {"sender_id", sender_id}
+                {"sender_id", std::to_string(sender_id)}
             };
             
-            g_jpush_manager->send_to_user(receiver_id, title, body, extra.dump());
+            g_jpush_manager->send_notification(receiver_id, title, body, data);
         } else if (g_fcm_manager && g_fcm_manager->is_configured()) {
             std::string title = sender.nickname.empty() ? sender.username : sender.nickname;
             std::string body = content;
             if (body.length() > 50) body = body.substr(0, 50) + "...";
             
-            g_fcm_manager->send_to_user(receiver_id, title, body, "private_message", sender_id);
+            std::map<std::string, std::string> data = {
+                {"type", "private_message"},
+                {"sender_id", std::to_string(sender_id)}
+            };
+            
+            g_fcm_manager->send_notification(receiver_id, title, body, data);
         }
-    }
-    
-    // 机器人自动回复
-    if (g_bot_manager && g_bot_manager->is_bot(receiver_id)) {
-        g_bot_manager->handle_message(sender_id, content, message_id);
     }
 }
 
@@ -367,13 +466,13 @@ void handle_group_message(chat::WsConnection::ptr conn, const json& msg) {
                 std::string body = content;
                 if (body.length() > 50) body = body.substr(0, 50) + "...";
                 
-                json extra = {
+                std::map<std::string, std::string> data = {
                     {"type", "group_message"},
-                    {"group_id", group_id},
-                    {"sender_id", sender_id}
+                    {"group_id", std::to_string(group_id)},
+                    {"sender_id", std::to_string(sender_id)}
                 };
                 
-                g_jpush_manager->send_to_user(member_id, title, body, extra.dump());
+                g_jpush_manager->send_notification(member_id, title, body, data);
             }
         }
     }
@@ -421,11 +520,6 @@ void handle_friend_request(chat::WsConnection::ptr conn, const json& msg) {
             {"created_at", std::time(nullptr)}
         };
         to_conn->send_text(notification.dump());
-    }
-    
-    // 机器人自动接受好友请求
-    if (g_bot_manager && g_bot_manager->is_bot(to_id)) {
-        g_bot_manager->handle_friend_request(from_id);
     }
 }
 
@@ -738,6 +832,129 @@ void handle_password_update(chat::WsConnection::ptr conn, const json& msg) {
     }
 }
 
+// 处理获取好友列表
+void handle_friend_list(chat::WsConnection::ptr conn, const json& msg) {
+    uint64_t user_id = conn->get_user_id();
+    
+    auto friends = g_friend_manager->get_friend_list(user_id);
+    
+    json response = {
+        {"type", "friendListResponse"},
+        {"friends", json::array()}
+    };
+    
+    for (const auto& [user_info, relation] : friends) {
+        if (relation.status == chat::FriendStatus::ACCEPTED) {
+            response["friends"].push_back({
+                {"user_id", user_info.user_id},
+                {"username", user_info.username},
+                {"nickname", user_info.nickname},
+                {"avatar_url", user_info.avatar_url},
+                {"remark", relation.remark},
+                {"online_status", static_cast<int>(user_info.online_status)}
+            });
+        }
+    }
+    
+    conn->send_text(response.dump());
+}
+
+// 处理获取好友请求列表
+void handle_friend_requests(chat::WsConnection::ptr conn, const json& msg) {
+    uint64_t user_id = conn->get_user_id();
+    
+    auto requests = g_friend_manager->get_friend_requests(user_id);
+    
+    json response = {
+        {"type", "friendRequestsResponse"},
+        {"requests", json::array()}
+    };
+    
+    for (const auto& [user_info, relation] : requests) {
+        if (relation.status == chat::FriendStatus::PENDING) {
+            response["requests"].push_back({
+                {"from_user_id", user_info.user_id},
+                {"from_username", user_info.username},
+                {"from_nickname", user_info.nickname},
+                {"from_avatar", user_info.avatar_url},
+                {"created_at", relation.created_at}
+            });
+        }
+    }
+    
+    conn->send_text(response.dump());
+}
+
+// 处理获取群组列表
+void handle_group_list(chat::WsConnection::ptr conn, const json& msg) {
+    uint64_t user_id = conn->get_user_id();
+    
+    auto groups = g_group_manager->get_user_groups(user_id);
+    
+    json response = {
+        {"type", "groupListResponse"},
+        {"groups", json::array()}
+    };
+    
+    for (const auto& group : groups) {
+        response["groups"].push_back({
+            {"group_id", group.group_id},
+            {"group_name", group.group_name},
+            {"avatar_url", group.avatar_url},
+            {"description", group.description},
+            {"owner_id", group.owner_id},
+            {"member_count", static_cast<int>(group.members.size())}
+        });
+    }
+    
+    conn->send_text(response.dump());
+}
+
+// 处理获取群成员列表
+void handle_group_members(chat::WsConnection::ptr conn, const json& msg) {
+    uint64_t group_id = msg["group_id"].get<uint64_t>();
+    
+    chat::GroupInfo group;
+    if (!g_group_manager->get_group_info(group_id, group)) {
+        conn->send_text(R"({"type":"groupMembersResponse","success":false,"error":"Group not found"})");
+        return;
+    }
+    
+    json response = {
+        {"type", "groupMembersResponse"},
+        {"success", true},
+        {"group_id", group_id},
+        {"members", json::array()}
+    };
+    
+    // 获取成员详细信息
+    for (uint64_t member_id : group.members) {
+        chat::UserInfo user;
+        if (g_user_manager->get_user_info(member_id, user)) {
+            json member_json = {
+                {"user_id", user.user_id},
+                {"username", user.username},
+                {"nickname", user.nickname},
+                {"avatar_url", user.avatar_url},
+                {"online_status", static_cast<int>(user.online_status)}
+            };
+            
+            // 设置角色
+            if (member_id == group.owner_id) {
+                member_json["role"] = "owner";
+            } else if (std::find(group.admins.begin(), group.admins.end(), member_id) != group.admins.end()) {
+                member_json["role"] = "admin";
+            } else {
+                member_json["role"] = "member";
+            }
+            
+            response["members"].push_back(member_json);
+        }
+    }
+    
+    conn->send_text(response.dump());
+}
+
 // 处理用户搜索
 void handle_user_search(chat::WsConnection::ptr conn, const json& msg) {
     std::string keyword = msg["keyword"];
@@ -755,6 +972,72 @@ void handle_user_search(chat::WsConnection::ptr conn, const json& msg) {
             {"username", user.username},
             {"nickname", user.nickname},
             {"avatar_url", user.avatar_url}
+        });
+    }
+    
+    conn->send_text(response.dump());
+}
+
+// 处理私聊历史消息
+void handle_private_history(chat::WsConnection::ptr conn, const json& msg) {
+    uint64_t user_id = conn->get_user_id();
+    uint64_t peer_id = msg["peer_id"].get<uint64_t>();
+    int64_t before_time = msg.value("before_time", 0);
+    int limit = msg.value("limit", 50);
+    
+    auto messages = g_message_manager->get_private_history(user_id, peer_id, before_time, limit);
+    
+    json response = {
+        {"type", "privateHistoryResponse"},
+        {"peer_id", peer_id},
+        {"messages", json::array()}
+    };
+    
+    for (const auto& msg : messages) {
+        response["messages"].push_back({
+            {"message_id", msg.message_id},
+            {"sender_id", msg.sender_id},
+            {"receiver_id", msg.receiver_id},
+            {"content", msg.content},
+            {"message_type", static_cast<int>(msg.media_type)},
+            {"media_url", msg.media_url},
+            {"created_at", msg.created_at}
+        });
+    }
+    
+    conn->send_text(response.dump());
+}
+
+// 处理群聊历史消息
+void handle_group_history(chat::WsConnection::ptr conn, const json& msg) {
+    uint64_t user_id = conn->get_user_id();
+    uint64_t group_id = msg["group_id"].get<uint64_t>();
+    int64_t before_time = msg.value("before_time", 0);
+    int limit = msg.value("limit", 50);
+    
+    // 检查是否是群成员
+    if (!g_group_manager->is_member(group_id, user_id)) {
+        conn->send_text(R"({"type":"groupHistoryResponse","success":false,"error":"Not a group member"})");
+        return;
+    }
+    
+    auto messages = g_message_manager->get_group_history(group_id, before_time, limit);
+    
+    json response = {
+        {"type", "groupHistoryResponse"},
+        {"group_id", group_id},
+        {"messages", json::array()}
+    };
+    
+    for (const auto& msg : messages) {
+        response["messages"].push_back({
+            {"message_id", msg.message_id},
+            {"sender_id", msg.sender_id},
+            {"group_id", msg.group_id},
+            {"content", msg.content},
+            {"message_type", static_cast<int>(msg.media_type)},
+            {"media_url", msg.media_url},
+            {"created_at", msg.created_at}
         });
     }
     
@@ -865,7 +1148,17 @@ int main(int argc, char* argv[]) {
     std::cout << "[OK] Database connected" << std::endl;
     
     // 初始化数据库连接池
-    g_db_pool = std::make_shared<chat::DatabasePool>(db_config, 5, 20);
+    chat::DatabaseConfig pool_db_config;
+    pool_db_config.host = db_config.host;
+    pool_db_config.port = db_config.port;
+    pool_db_config.user = db_config.user;
+    pool_db_config.password = db_config.password;
+    pool_db_config.database = db_config.database;
+    
+    chat::DatabasePool::PoolConfig pool_config;
+    pool_config.min_connections = 5;
+    pool_config.max_connections = 20;
+    g_db_pool = std::make_shared<chat::DatabasePool>(pool_db_config, pool_config);
     std::cout << "[OK] Database pool initialized" << std::endl;
     
     // 初始化管理器
@@ -873,9 +1166,6 @@ int main(int argc, char* argv[]) {
     g_message_manager = std::make_shared<chat::MessageManager>(g_database);
     g_group_manager = std::make_shared<chat::GroupManager>(g_database);
     g_friend_manager = std::make_shared<chat::FriendManager>(g_database);
-    
-    // 初始化机器人 (暂时禁用，新的 Gateway 架构中需要重构)
-    // g_bot_manager = ...;
     
     // 初始化 FCM
     g_fcm_manager = std::make_shared<chat::FcmManager>(g_database);
@@ -906,7 +1196,6 @@ int main(int argc, char* argv[]) {
     g_ws_server->set_message_manager(g_message_manager);
     g_ws_server->set_group_manager(g_group_manager);
     g_ws_server->set_friend_manager(g_friend_manager);
-    g_ws_server->set_bot_manager(g_bot_manager);
     g_ws_server->set_fcm_manager(g_fcm_manager);
     g_ws_server->set_jpush_manager(g_jpush_manager);
     
