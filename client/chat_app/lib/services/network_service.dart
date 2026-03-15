@@ -25,7 +25,7 @@ class NetworkService {
   Timer? _heartbeatTimeoutTimer;
   Timer? _reconnectTimer;
   
-  String _host = '10.0.2.2';
+  String _host = '127.0.0.1';
   int _port = 8888;
   bool _autoReconnect = true;
   int _reconnectDelay = 1000; // 初始重连延迟 1 秒

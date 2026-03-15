@@ -131,7 +131,7 @@ class WebSocketService {
   Timer? _heartbeatTimeoutTimer;
   Timer? _reconnectTimer;
   
-  String _host = '10.0.2.2';
+  String _host = '127.0.0.1';
   int _port = 8888;
   String _wsPath = '/ws';
   bool _autoReconnect = true;

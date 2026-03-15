@@ -798,7 +798,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // 替换localhost为实际地址
     String fixedUrl = url;
     if (url.contains('localhost')) {
-      fixedUrl = url.replaceFirst(RegExp(r'http://localhost:\d+'), 'http://10.0.2.2:8889');
+      fixedUrl = url.replaceFirst(RegExp(r'http://localhost:\d+'), 'http://127.0.0.1:8889');
     }
     
     // 检查是否是网络URL
@@ -1226,7 +1226,7 @@ class _ImagePreviewScreen extends StatelessWidget {
     // 替换localhost为实际地址
     String fixedUrl = url;
     if (url.contains('localhost')) {
-      fixedUrl = url.replaceFirst(RegExp(r'http://localhost:\d+'), 'http://10.0.2.2:8889');
+      fixedUrl = url.replaceFirst(RegExp(r'http://localhost:\d+'), 'http://127.0.0.1:8889');
     }
     
     return Scaffold(

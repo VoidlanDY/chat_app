@@ -231,7 +231,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   
   String _fixMediaUrl(String url) {
     if (url.contains("localhost")) {
-      return url.replaceFirst(RegExp(r"http://localhost:\d+"), "http://10.0.2.2:8889");
+      return url.replaceFirst(RegExp(r"http://localhost:\d+"), "http://127.0.0.1:8889");
     }
     return url;
   }
@@ -281,7 +281,7 @@ class _GalleryViewScreenState extends State<_GalleryViewScreen> {
   
   String _fixMediaUrl(String url) {
     if (url.contains("localhost")) {
-      return url.replaceFirst(RegExp(r"http://localhost:\d+"), "http://10.0.2.2:8889");
+      return url.replaceFirst(RegExp(r"http://localhost:\d+"), "http://127.0.0.1:8889");
     }
     return url;
   }

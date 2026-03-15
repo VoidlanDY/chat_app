@@ -91,7 +91,7 @@ class ChatService extends ChangeNotifier {
   int get currentUserId => _currentUser?.userId ?? 0;
 
   // 媒体服务器地址（用于替换服务器返回的localhost URL）
-  String _mediaServerHost = "10.0.2.2:8889"; // Android模拟器访问宿主机
+  String _mediaServerHost = "127.0.0.1:8889"; // 本地服务器
   
   void setMediaServerHost(String host) {
     _mediaServerHost = host;
@@ -1401,7 +1401,7 @@ class ChatService extends ChangeNotifier {
       notifyListeners();
       
       // 使用 HTTP POST 上传到 HTTP Gateway
-      // 媒体服务器地址使用 _mediaServerHost (默认 10.0.2.2:8889)
+      // 媒体服务器地址使用 _mediaServerHost (默认 127.0.0.1:8889)
       final uri = Uri.parse('http://$_mediaServerHost/api/upload');
       
       // 创建 multipart 请求
