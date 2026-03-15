@@ -59,7 +59,13 @@ class _LoginScreenState extends State<LoginScreen> {
       // 确保已连接
       if (!chatService.isConnected) {
         final storage = StorageService();
-        await chatService.connect(storage.serverHost, storage.serverPort);
+        final connected = await chatService.connect(storage.serverHost, storage.serverPort);
+        if (!connected) {
+          setState(() {
+            _error = '无法连接到服务器，请检查网络设置';
+          });
+          return;
+        }
       }
       
       final success = await chatService.login(_usernameController.text, _passwordController.text);
