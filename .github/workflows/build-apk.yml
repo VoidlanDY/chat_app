@@ -56,9 +56,13 @@ jobs:
           echo "No keystore found, using debug signing"
         fi
     
+    - name: Analyze code
+      working-directory: client/chat_app
+      run: flutter analyze || true
+    
     - name: Build APK
       working-directory: client/chat_app
-      run: flutter build apk --release
+      run: flutter build apk --release --verbose
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
