@@ -22,6 +22,7 @@
 - 2026-03-11 完成功能 #F013: 客户端本地聊天记录保存
 - 2026-03-11 完成功能 #F014: DeepSeek AI 机器人自动回复
 - 2026-03-14 完成功能 #F031: HTTP Gateway 统一文件服务
+- 2026-03-15 修复客户端连接问题 (启动脚本使用 gateway_server)
 
 ## 待处理问题
 - MySQL 数据库连接需要配置
@@ -31,6 +32,32 @@
 ## 下一步计划
 - F025 设置页面 - 功能完善
 - F026 编辑资料 - 头像上传
+
+## [2026-03-15] Bug 修复 - 客户端无法连接服务器
+
+- 问题描述:
+  - 客户端更新到 WebSocket 后无法连接服务器
+  - IP 127.0.0.1 端口 8888 和 8889 都无法连接
+  - WebSocket 更新前可以正常连接
+
+- 根因分析:
+  1. 客户端已改用 WebSocket 连接 (ws://host:port/ws)
+  2. 但启动脚本仍启动旧的 TCP 服务器 (chat_server)
+  3. 需要启动 gateway_server (WebSocket + HTTP Gateway)
+  4. Termux 环境下动态库路径不正确
+
+- 修复内容:
+  1. 更新 start_servers.sh 使用 gateway_server
+  2. 添加 LD_LIBRARY_PATH 设置解决动态库加载问题
+  3. 指向正确的服务器路径 build/linux/arm64/release/gateway_server
+
+- 测试结果: 通过
+  - WebSocket 握手成功 (HTTP 101 Switching Protocols)
+  - 用户注册成功
+  - 用户登录成功
+
+- 相关文件:
+  - `start_servers.sh` - 更新启动脚本
 
 ## [2026-03-15] 完成功能 #F033 - WebSocket 完整支持
 - 实现内容:
