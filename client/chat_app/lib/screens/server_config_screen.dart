@@ -38,7 +38,7 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
 
     try {
       final storage = StorageService();
-      await storage.setServerConfig(
+      await storage.saveServerConfig(
         _hostController.text.trim(),
         int.parse(_portController.text.trim()),
       );
