@@ -275,4 +275,34 @@ class MessageDatabase {
     
     return results.take(limit).toList();
   }
+  
+  /// 获取数据库大小（估算）
+  Future<int> getDatabaseSize() async {
+    int totalSize = 0;
+    
+    // 计算消息存储大小
+    for (final key in _messagesBox?.keys ?? []) {
+      final value = _messagesBox?.get(key);
+      if (value != null) {
+        totalSize += value.length;
+      }
+    }
+    
+    // 计算会话存储大小
+    for (final key in _conversationsBox?.keys ?? []) {
+      final value = _conversationsBox?.get(key);
+      if (value != null) {
+        totalSize += value.length;
+      }
+    }
+    
+    return totalSize;
+  }
+  
+  /// 清除所有本地数据
+  Future<void> clearAll() async {
+    await _messagesBox?.clear();
+    await _conversationsBox?.clear();
+    await _lastSyncBox?.clear();
+  }
 }
