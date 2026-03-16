@@ -53,7 +53,7 @@ class StorageService {
   }
 
   /// 获取服务器主机
-  String get serverHost => _prefs?.getString(_keyServerHost) ?? '127.0.0.1';
+  String get serverHost => _prefs?.getString(_keyServerHost) ?? '192.168.110.197';
 
   /// 获取服务器端口
   int get serverPort => _prefs?.getInt(_keyServerPort) ?? 8888;
