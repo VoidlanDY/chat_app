@@ -532,12 +532,18 @@ void WebSocketServer::handle_new_connection(int client_socket, const std::string
 }
 
 bool WebSocketServer::perform_handshake(int socket, const std::string& request) {
-    // 提取 Sec-WebSocket-Key
+    // 提取 Sec-WebSocket-Key (大小写不敏感)
     std::string ws_key;
-    size_t key_pos = request.find("Sec-WebSocket-Key:");
-    if (key_pos == std::string::npos) {
-        key_pos = request.find("Sec-WebSocket-key:");
+    
+    // 转换为小写进行查找
+    std::string lower_request = request;
+    for (size_t i = 0; i < lower_request.size(); ++i) {
+        if (lower_request[i] >= 'A' && lower_request[i] <= 'Z') {
+            lower_request[i] += 32;
+        }
     }
+    
+    size_t key_pos = lower_request.find("sec-websocket-key:");
     
     if (key_pos != std::string::npos) {
         size_t start = request.find(':', key_pos) + 1;
