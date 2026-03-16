@@ -22,6 +22,13 @@ class StorageService {
   /// 初始化
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    
+    // 强制更新 localhost 为局域网 IP（解决 Android 网络隔离问题）
+    final savedHost = _prefs?.getString(_keyServerHost);
+    if (savedHost == '127.0.0.1' || savedHost == 'localhost') {
+      await _prefs?.setString(_keyServerHost, '192.168.110.197');
+      debugPrint('已自动更新服务器地址: 127.0.0.1 -> 192.168.110.197');
+    }
   }
 
   /// 保存认证信息
