@@ -468,7 +468,8 @@
         "清除缓存能正确清理本地数据",
         "通知和隐私设置生效"
       ],
-      "status": "pending"
+      "status": "completed",
+      "completedAt": "2026-03-17T00:00:00Z"
     },
     {
       "id": "F026",
@@ -664,9 +665,9 @@
   ],
   "statistics": {
     "total": 35,
-    "completed": 25,
+    "completed": 26,
     "inProgress": 0,
-    "pending": 10,
+    "pending": 9,
     "byPriority": {
       "high": 18,
       "medium": 9,
