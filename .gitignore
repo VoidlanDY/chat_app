@@ -33,3 +33,6 @@ server/*.pid
 
 # Firebase 服务账号密钥 (敏感文件，不提交)
 server/config/firebase-service-account.json
+
+# Termux 特定脚本 (本地开发用)
+run_server_bg.sh
