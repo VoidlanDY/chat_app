@@ -54,6 +54,7 @@ dependencies:
   crypto: ^3.0.3
   pointycastle: ^3.7.3
   convert: ^3.1.1
+  permission_handler: ^11.1.0
   
   # 多媒体
   video_player: ^2.8.1
