@@ -1,12 +1,12 @@
 buildscript {
-    ext.kotlin_version = '1.9.24'
+    ext.kotlin_version = '2.1.0'
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.2'
+        classpath 'com.android.tools.build:gradle:8.9.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath 'com.google.gms:google-services:4.4.0'
     }
@@ -37,11 +37,11 @@ subprojects {
             }
             
             // 确保所有子项目使用足够高的 compileSdkVersion
-            project.android.compileSdkVersion 35
-            
+            project.android.compileSdkVersion 36
+
             // 修复 jpush_flutter 需要 Android 31+ 的资源
             if (project.name == 'jpush_flutter') {
-                project.android.compileSdkVersion 35
+                project.android.compileSdkVersion 36
             }
         }
     }

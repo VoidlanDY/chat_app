@@ -35,7 +35,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace "com.ey.echat"
-    compileSdkVersion 35
+    compileSdkVersion 36
+    ndkVersion "27.0.12077973"
     // ndkVersion 已移除，使用系统默认 NDK
 
     compileOptions {
@@ -54,7 +55,7 @@ android {
 
     defaultConfig {
         applicationId "com.ey.echat"
-        minSdkVersion 21
+        minSdkVersion flutter.minSdkVersion
         targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

@@ -12,21 +12,30 @@ set(TERMUX_PREFIX "/data/data/com.termux/files/usr")
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-# ASIO (header-only)
-find_path(ASIO_INCLUDE_DIR NAMES asio.hpp PATHS ${TERMUX_PREFIX}/include)
+# ASIO (header-only) - 优先使用系统路径
+find_path(ASIO_INCLUDE_DIR NAMES asio.hpp PATHS /usr/include ${TERMUX_PREFIX}/include)
 
 # nlohmann_json
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
-# QuickJS - 使用 CMake config
-find_package(qjs REQUIRED)
+# QuickJS - 手动查找，因为没有 CMake config
+find_path(QJS_INCLUDE_DIR NAMES quickjs.h PATHS /usr/include/quickjs)
+find_library(QJS_LIBRARY NAMES quickjs PATHS /usr/lib/aarch64-linux-gnu/quickjs /usr/lib/quickjs /usr/lib)
 
-# libcurl
-find_path(CURL_INCLUDE_DIR NAMES curl/curl.h PATHS ${TERMUX_PREFIX}/include)
-find_library(CURL_LIBRARY NAMES curl PATHS ${TERMUX_PREFIX}/lib)
+if(NOT QJS_INCLUDE_DIR OR NOT QJS_LIBRARY)
+    message(FATAL_ERROR "QuickJS not found!")
+endif()
+message(STATUS "QuickJS include: ${QJS_INCLUDE_DIR}, lib: ${QJS_LIBRARY}")
 
-# MariaDB/MySQL
+# libcurl - 优先使用系统路径
+find_path(CURL_INCLUDE_DIR NAMES curl/curl.h PATHS /usr/include ${TERMUX_PREFIX}/include)
+find_library(CURL_LIBRARY NAMES curl PATHS /usr/lib/aarch64-linux-gnu /usr/lib ${TERMUX_PREFIX}/lib)
+
+# MariaDB/MySQL - 优先使用系统路径
 find_path(MYSQL_INCLUDE_DIR NAMES mysql.h PATHS 
+    /usr/include/mariadb
+    /usr/include/mysql
+    /usr/include
     ${TERMUX_PREFIX}/include/mariadb
     ${TERMUX_PREFIX}/include/mysql
     ${TERMUX_PREFIX}/include
@@ -35,7 +44,10 @@ find_library(MYSQL_LIBRARY NAMES
     mariadb 
     mysqlclient 
     mysql
-    PATHS ${TERMUX_PREFIX}/lib
+    PATHS 
+    /usr/lib/aarch64-linux-gnu
+    /usr/lib 
+    ${TERMUX_PREFIX}/lib 
 )
 
 if(NOT MYSQL_INCLUDE_DIR OR NOT MYSQL_LIBRARY)
@@ -47,9 +59,9 @@ if(NOT MYSQL_INCLUDE_DIR OR NOT MYSQL_LIBRARY)
     endif()
 endif()
 
-# libmicrohttpd for media server
-find_path(MHD_INCLUDE_DIR NAMES microhttpd.h PATHS ${TERMUX_PREFIX}/include)
-find_library(MHD_LIBRARY NAMES microhttpd PATHS ${TERMUX_PREFIX}/lib)
+# libmicrohttpd for media server - 优先使用系统路径
+find_path(MHD_INCLUDE_DIR NAMES microhttpd.h PATHS /usr/include ${TERMUX_PREFIX}/include)
+find_library(MHD_LIBRARY NAMES microhttpd PATHS /usr/lib/aarch64-linux-gnu /usr/lib ${TERMUX_PREFIX}/lib)
 
 # 打印找到的路径
 message(STATUS "ASIO include: ${ASIO_INCLUDE_DIR}")
@@ -82,6 +94,7 @@ target_include_directories(chat_server PRIVATE
     ${ASIO_INCLUDE_DIR}
     ${MYSQL_INCLUDE_DIR}
     ${CURL_INCLUDE_DIR}
+    ${QJS_INCLUDE_DIR}
 )
 
 target_link_libraries(chat_server PRIVATE
@@ -92,7 +105,7 @@ target_link_libraries(chat_server PRIVATE
     ${CURL_LIBRARY}
     ${MHD_LIBRARY}
     nlohmann_json::nlohmann_json
-    qjs
+    ${QJS_LIBRARY}
     dl
     m
 )
@@ -128,6 +141,8 @@ target_link_libraries(media_server PRIVATE
 # 网关服务器可执行文件 (统一入口 - WebSocket + HTTP)
 add_executable(gateway_server
     src/gateway_main.cpp
+    src/server.cpp
+    src/session.cpp
     src/websocket_server.cpp
     src/http_gateway.cpp
     src/database.cpp
@@ -150,6 +165,7 @@ target_include_directories(gateway_server PRIVATE
     ${MYSQL_INCLUDE_DIR}
     ${CURL_INCLUDE_DIR}
     ${MHD_INCLUDE_DIR}
+    ${QJS_INCLUDE_DIR}
 )
 
 target_link_libraries(gateway_server PRIVATE
@@ -160,7 +176,7 @@ target_link_libraries(gateway_server PRIVATE
     ${CURL_LIBRARY}
     ${MHD_LIBRARY}
     nlohmann_json::nlohmann_json
-    qjs
+    ${QJS_LIBRARY}
     dl
     m
 )
