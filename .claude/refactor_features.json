@@ -1,0 +1,399 @@
+{
+  "projectName": "ChatApp 重构项目",
+  "description": "全面重构 ChatApp 以提升性能、可靠性和安全性",
+  "createdAt": "2026-03-22T04:34:00Z",
+  "features": [
+    {
+      "id": "R001",
+      "category": "security",
+      "description": "密码存储升级 - 从 SHA256 升级到 bcrypt",
+      "priority": "high",
+      "estimatedEffort": "4-6 hours",
+      "steps": [
+        "添加 bcrypt 库依赖（如 libbcrypt 或 OpenSSL bcrypt）",
+        "实现 bcrypt 密码哈希函数",
+        "更新用户注册逻辑使用 bcrypt",
+        "更新用户登录逻辑验证 bcrypt 哈希",
+        "创建数据库迁移脚本（可选：渐进式迁移）",
+        "测试新旧密码兼容性"
+      ],
+      "acceptanceCriteria": [
+        "新注册用户密码使用 bcrypt 存储",
+        "旧用户可以正常登录",
+        "密码验证正确",
+        "性能影响可接受（登录时间 < 500ms）"
+      ],
+      "risks": [
+        "bcrypt 计算较慢，可能影响登录性能",
+        "需要处理旧密码的兼容性"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R002",
+      "category": "security",
+      "description": "API 密钥管理 - 使用环境变量和密钥轮换",
+      "priority": "high",
+      "estimatedEffort": "2-3 hours",
+      "steps": [
+        "审查代码中所有硬编码的 API 密钥",
+        "创建 .env.example 文件模板",
+        "修改代码从环境变量读取密钥",
+        "更新 README.md 说明环境变量配置",
+        "添加启动时的密钥验证",
+        "从代码和 Git 历史中移除敏感信息"
+      ],
+      "acceptanceCriteria": [
+        "所有 API 密钥从环境变量读取",
+        "代码中无硬编码密钥",
+        ".gitignore 包含 .env 文件",
+        "启动时验证必需的环境变量"
+      ],
+      "risks": [
+        "需要更新部署流程",
+        "可能影响现有部署"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R003",
+      "category": "security",
+      "description": "SQL 注入防护审查 - 使用预编译语句",
+      "priority": "high",
+      "estimatedEffort": "6-8 hours",
+      "steps": [
+        "审查 database.cpp 中所有 SQL 查询",
+        "识别字符串拼接的 SQL 语句",
+        "使用 mysql_stmt_* 系列函数替换",
+        "实现预编译语句辅助类",
+        "更新所有数据库操作使用预编译语句",
+        "进行 SQL 注入测试"
+      ],
+      "acceptanceCriteria": [
+        "所有用户输入使用预编译语句",
+        "无字符串拼接的 SQL 查询",
+        "SQL 注入测试通过",
+        "功能测试全部通过"
+      ],
+      "risks": [
+        "改动较大，可能引入 bug",
+        "需要大量测试"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R004",
+      "category": "security",
+      "description": "敏感信息日志清理 - 移除密码和 token 日志",
+      "priority": "high",
+      "estimatedEffort": "2-3 hours",
+      "steps": [
+        "审查所有日志输出语句",
+        "识别包含敏感信息的日志",
+        "移除或脱敏敏感信息",
+        "实现日志过滤器",
+        "添加日志安全规范文档"
+      ],
+      "acceptanceCriteria": [
+        "日志中不包含密码",
+        "日志中不包含完整 token",
+        "日志中不包含数据库密码",
+        "保留足够的调试信息"
+      ],
+      "risks": [
+        "可能影响调试能力"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R005",
+      "category": "performance",
+      "description": "消除全局变量 - 使用依赖注入",
+      "priority": "high",
+      "estimatedEffort": "8-10 hours",
+      "steps": [
+        "创建 Application 或 Context 类",
+        "将全局变量移到 Application 类中",
+        "实现依赖注入容器",
+        "更新所有使用全局变量的代码",
+        "重构 gateway_main.cpp",
+        "测试所有功能"
+      ],
+      "acceptanceCriteria": [
+        "无全局变量（除必要的常量）",
+        "依赖关系清晰",
+        "代码可测试性提高",
+        "功能测试全部通过"
+      ],
+      "risks": [
+        "改动范围大",
+        "可能影响多个模块"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R006",
+      "category": "performance",
+      "description": "线程池优化 - 配置和监控",
+      "priority": "medium",
+      "estimatedEffort": "4-5 hours",
+      "steps": [
+        "分析当前线程池使用情况",
+        "添加线程池配置参数",
+        "实现线程池监控指标",
+        "优化任务队列大小",
+        "添加任务拒绝策略",
+        "性能测试和调优"
+      ],
+      "acceptanceCriteria": [
+        "线程池大小可配置",
+        "有监控指标（队列长度、活跃线程数）",
+        "任务拒绝有明确策略",
+        "性能测试通过"
+      ],
+      "risks": [
+        "配置不当可能影响性能"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R007",
+      "category": "performance",
+      "description": "数据库连接池优化 - 连接复用和超时",
+      "priority": "medium",
+      "estimatedEffort": "5-6 hours",
+      "steps": [
+        "审查 DatabasePool 实现",
+        "添加连接健康检查",
+        "实现连接超时和回收",
+        "添加连接池监控",
+        "优化连接获取策略",
+        "压力测试"
+      ],
+      "acceptanceCriteria": [
+        "连接池有最大最小连接数配置",
+        "空闲连接自动回收",
+        "连接健康检查正常",
+        "压力测试稳定"
+      ],
+      "risks": [
+        "连接泄漏可能导致服务不可用"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R008",
+      "category": "performance",
+      "description": "内存泄漏检测和修复 - 使用 Valgrind/ASan",
+      "priority": "medium",
+      "estimatedEffort": "6-8 hours",
+      "steps": [
+        "使用 Valgrind 检测内存泄漏",
+        "使用 AddressSanitizer 检测内存错误",
+        "修复识别的内存泄漏",
+        "审查智能指针使用",
+        "添加 RAII 包装器",
+        "长时间运行测试"
+      ],
+      "acceptanceCriteria": [
+        "Valgrind 无内存泄漏报告",
+        "ASan 无错误报告",
+        "长时间运行内存稳定",
+        "智能指针使用正确"
+      ],
+      "risks": [
+        "可能发现大量问题",
+        "修复可能引入新 bug"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R009",
+      "category": "reliability",
+      "description": "错误处理改进 - 统一错误处理机制",
+      "priority": "medium",
+      "estimatedEffort": "5-6 hours",
+      "steps": [
+        "定义错误码和错误类型",
+        "实现统一的错误处理类",
+        "更新所有错误返回使用统一机制",
+        "添加错误日志记录",
+        "实现错误恢复策略",
+        "测试错误场景"
+      ],
+      "acceptanceCriteria": [
+        "所有错误有明确的错误码",
+        "错误信息清晰可读",
+        "错误日志完整",
+        "错误恢复策略有效"
+      ],
+      "risks": [
+        "改动范围大"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R010",
+      "category": "reliability",
+      "description": "RAII 资源管理 - 确保资源正确释放",
+      "priority": "medium",
+      "estimatedEffort": "4-5 hours",
+      "steps": [
+        "审查所有资源获取代码",
+        "识别未使用 RAII 的资源",
+        "创建 RAII 包装类",
+        "更新代码使用 RAII",
+        "测试异常场景下的资源释放"
+      ],
+      "acceptanceCriteria": [
+        "所有资源使用 RAII 管理",
+        "异常情况下资源正确释放",
+        "无资源泄漏",
+        "代码更简洁"
+      ],
+      "risks": [
+        "可能遗漏某些资源"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R011",
+      "category": "reliability",
+      "description": "异常安全性加强 - 保证强异常安全",
+      "priority": "medium",
+      "estimatedEffort": "5-6 hours",
+      "steps": [
+        "审查所有可能抛出异常的代码",
+        "添加异常捕获和处理",
+        "确保异常安全的状态转换",
+        "使用 noexcept 标记不抛异常的函数",
+        "测试异常场景"
+      ],
+      "acceptanceCriteria": [
+        "关键操作提供强异常安全保证",
+        "异常不会导致资源泄漏",
+        "异常不会导致状态不一致",
+        "异常测试通过"
+      ],
+      "risks": [
+        "异常安全难以保证"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R012",
+      "category": "reliability",
+      "description": "连接断开处理优化 - 优雅关闭和清理",
+      "priority": "medium",
+      "estimatedEffort": "4-5 hours",
+      "steps": [
+        "审查连接断开处理逻辑",
+        "实现优雅关闭机制",
+        "添加连接状态清理",
+        "更新用户在线状态",
+        "测试各种断开场景"
+      ],
+      "acceptanceCriteria": [
+        "连接断开时资源正确清理",
+        "用户状态正确更新",
+        "无悬挂连接",
+        "断开测试通过"
+      ],
+      "risks": [
+        "边界情况可能遗漏"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R013",
+      "category": "quality",
+      "description": "代码解耦和模块化 - 降低耦合度",
+      "priority": "medium",
+      "estimatedEffort": "8-10 hours",
+      "steps": [
+        "分析模块依赖关系",
+        "识别高耦合的代码",
+        "定义清晰的接口",
+        "重构高耦合代码",
+        "使用依赖倒置原则",
+        "测试重构后的代码"
+      ],
+      "acceptanceCriteria": [
+        "模块依赖关系清晰",
+        "接口定义明确",
+        "耦合度降低",
+        "代码可测试性提高"
+      ],
+      "risks": [
+        "重构范围可能很大"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R014",
+      "category": "quality",
+      "description": "单元测试覆盖 - 提高测试覆盖率",
+      "priority": "low",
+      "estimatedEffort": "10-12 hours",
+      "steps": [
+        "选择测试框架（如 Google Test）",
+        "为核心模块编写单元测试",
+        "实现测试辅助工具（mock 等）",
+        "添加 CI 集成",
+        "目标覆盖率 > 70%"
+      ],
+      "acceptanceCriteria": [
+        "核心模块有单元测试",
+        "测试覆盖率 > 70%",
+        "CI 自动运行测试",
+        "测试文档完善"
+      ],
+      "risks": [
+        "工作量大",
+        "需要重构代码以提高可测试性"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "R015",
+      "category": "quality",
+      "description": "文档完善 - API 文档和架构文档",
+      "priority": "low",
+      "estimatedEffort": "6-8 hours",
+      "steps": [
+        "编写架构设计文档",
+        "编写 API 接口文档",
+        "添加代码注释",
+        "编写部署文档",
+        "编写开发者指南"
+      ],
+      "acceptanceCriteria": [
+        "架构文档清晰",
+        "API 文档完整",
+        "代码注释充分",
+        "新开发者可以快速上手"
+      ],
+      "risks": [
+        "文档维护成本高"
+      ],
+      "status": "pending"
+    }
+  ],
+  "statistics": {
+    "total": 15,
+    "completed": 0,
+    "inProgress": 0,
+    "pending": 15,
+    "byPriority": {
+      "high": 5,
+      "medium": 8,
+      "low": 2
+    },
+    "byCategory": {
+      "security": 4,
+      "performance": 4,
+      "reliability": 4,
+      "quality": 3
+    }
+  }
+}
