@@ -1,0 +1,38 @@
+# 构建产物
+build/
+build_termux/
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+
+# 可执行文件
+chat_server
+gateway_server
+media_server
+
+# 配置文件（包含敏感信息）
+.env
+config/firebase-service-account.json
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.swp
+*~
+
+# IDE 配置
+.vscode/
+.idea/
+*.sublime-*
+
+# 数据库文件
+*.db
+*.sqlite
+
+# 编译缓存
+.cache/
+compile_commands.json

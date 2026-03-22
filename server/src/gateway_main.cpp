@@ -244,7 +244,10 @@ void handle_login(chat::WsConnection::ptr conn, const json& msg) {
     // 设置用户信息
     conn->set_user_id(user.user_id);
     conn->set_authenticated(true);
-    
+
+    // 添加到用户连接映射（支持消息推送）
+    g_ws_server->add_connection(conn);
+
     // 更新在线状态
     g_user_manager->set_online_status(user.user_id, chat::OnlineStatus::ONLINE);
     
@@ -1169,7 +1172,9 @@ int main(int argc, char* argv[]) {
     
     // 初始化 FCM
     g_fcm_manager = std::make_shared<chat::FcmManager>(g_database);
-    g_fcm_manager->set_config("chatapp-ae10f", "config/firebase-service-account.json");
+    const char* fcm_project_id_env = std::getenv("FCM_PROJECT_ID");
+    std::string fcm_project_id = fcm_project_id_env ? fcm_project_id_env : "chatapp-ae10f";
+    g_fcm_manager->set_config(fcm_project_id, "config/firebase-service-account.json");
     if (g_fcm_manager->is_configured()) {
         std::cout << "[OK] FCM Push initialized" << std::endl;
     } else {

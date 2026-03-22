@@ -234,6 +234,25 @@ JS_FUNC(load_data) {
     return JS_NewString(ctx, value.c_str());
 }
 
+// 获取配置（从环境变量）
+JS_FUNC(get_config) {
+    if (argc < 1) return JS_NULL;
+
+    const char* key = JS_ToCString(ctx, argv[0]);
+    if (!key) return JS_NULL;
+
+    // 从环境变量读取
+    const char* value = std::getenv(key);
+
+    JS_FreeCString(ctx, key);
+
+    if (value) {
+        return JS_NewString(ctx, value);
+    }
+
+    return JS_NULL;
+}
+
 void JSBotEngine::register_native_functions() {
     // 创建全局对象
     JSValue global = JS_GetGlobalObject(context_);
@@ -256,7 +275,8 @@ void JSBotEngine::register_native_functions() {
     register_func("httpPost", js_http_post);
     register_func("saveData", js_save_data);
     register_func("loadData", js_load_data);
-    
+    register_func("getConfig", js_get_config);
+
     // 将 Bot API 添加到全局对象
     JS_SetPropertyStr(context_, global, "Bot", bot_api);
     

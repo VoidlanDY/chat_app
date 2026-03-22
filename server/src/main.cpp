@@ -141,8 +141,10 @@ int main(int argc, char* argv[]) {
     
     // 初始化 FCM 推送管理器
     auto fcm_manager = std::make_shared<chat::FcmManager>(database);
+    const char* fcm_project_id_env = std::getenv("FCM_PROJECT_ID");
+    std::string fcm_project_id = fcm_project_id_env ? fcm_project_id_env : "chatapp-ae10f";
     std::string fcm_config_path = "config/firebase-service-account.json";
-    fcm_manager->set_config("chatapp-ae10f", fcm_config_path);
+    fcm_manager->set_config(fcm_project_id, fcm_config_path);
     if (fcm_manager->is_configured()) {
         g_server->set_fcm_manager(fcm_manager);
         std::cout << "FCM Push Notification initialized successfully" << std::endl;

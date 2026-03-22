@@ -135,7 +135,14 @@ function onMessage(message) {
     }
     
     // 调用 DeepSeek API
-    var apiKey = "sk-86c5f0d4e9b245a7b22248b2a4bded44";
+    // API Key 应该从环境变量或服务器配置中获取
+    // 注意：JavaScript 插件无法直接访问环境变量，需要通过 Bot API 传递
+    var apiKey = Bot.getConfig("DEEPSEEK_API_KEY") || "";
+    if (!apiKey) {
+        response.content = "抱歉，DeepSeek API 未配置。请联系管理员设置 DEEPSEEK_API_KEY。";
+        return response;
+    }
+
     var aiResponse = callDeepSeek(apiMessages, apiKey);
     
     if (aiResponse) {
