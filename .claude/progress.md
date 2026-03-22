@@ -12,14 +12,14 @@
 
 - **阶段**: 安全加固进行中
 - **最后更新**: 2026-03-22
-- **完成任务**: 1 / 15
+- **完成任务**: 2 / 15
 - **当前优先级**: 安全加固
 
 ## 重构任务概览
 
 ### 安全相关（4项）
 - [x] R001: 密码存储升级（SHA256 -> Argon2id）✅
-- [ ] R002: API 密钥管理（环境变量）
+- [x] R002: API 密钥管理（环境变量）✅
 - [ ] R003: SQL 注入防护审查
 - [ ] R004: 敏感信息日志清理
 
@@ -42,6 +42,27 @@
 
 ## 已完成工作
 
+### 2026-03-22 完成 R002: API 密钥管理
+- **实现内容**:
+  - 移除 DeepSeek JS 插件中硬编码的 API 密钥
+  - 添加 Bot.getConfig() 方法支持从环境变量读取配置
+  - FCM 项目 ID 改为从环境变量读取（FCM_PROJECT_ID）
+  - 创建 .env.example 配置示例文件
+  - 创建 .gitignore 防止敏感信息泄露
+- **修改文件**:
+  - server/plugins/deepseek_bot.js
+  - server/src/main.cpp
+  - server/src/gateway_main.cpp
+  - server/src/js_bot.cpp
+  - server/.env.example (新建)
+  - server/.gitignore (新建)
+- **环境变量**:
+  - DEEPSEEK_API_KEY - DeepSeek AI API 密钥
+  - FCM_PROJECT_ID - Firebase 项目 ID（可选）
+  - JPUSH_APP_KEY - 极光推送密钥（已支持）
+  - JPUSH_MASTER_SECRET - 极光推送密钥（已支持）
+- **提交**: 3fefc05
+
 ### 2026-03-22 完成 R001: 密码存储升级
 - **实现内容**:
   - 使用 libsodium 的 Argon2id 替代 SHA256 密码哈希
@@ -62,8 +83,8 @@
 
 ## 下一步计划
 
-1. **R002**: API 密钥管理（高优先级，安全问题）
-2. **R003**: SQL 注入防护审查（高优先级，安全问题）
+1. **R003**: SQL 注入防护审查（高优先级，安全问题）
+2. **R004**: 敏感信息日志清理（高优先级，安全问题）
 3. **R005**: 消除全局变量（高优先级，性能和可维护性）
 
 ## 已知问题
