@@ -1,5 +1,6 @@
 # Build directories
 server/build/
+server/build_termux/
 client/chat_app/build/
 
 # IDE
@@ -18,6 +19,10 @@ GeneratedPluginRegistrant.java
 
 # Logs
 *.log
+
+# Python cache
+__pycache__/
+*.pyc
 
 # OS
 .DS_Store

@@ -184,23 +184,26 @@ public:
     
     // 检查用户在线状态
     bool is_user_online(uint64_t user_id);
-    
+
+    // 添加用户连接（登录后调用）
+    void add_connection(WsConnection::ptr conn);
+
 private:
     // 接受连接线程
     void accept_loop();
-    
+
     // 处理新连接
     void handle_new_connection(int client_socket, const std::string& client_ip);
-    
+
     // 执行 WebSocket 握手
     bool perform_handshake(int socket, const std::string& request);
-    
+
     // 心跳检查线程
     void heartbeat_loop();
-    
+
     // 移除连接
     void remove_connection(WsConnection::ptr conn);
-    
+
     // 计算 Sec-WebSocket-Accept
     static std::string compute_accept_key(const std::string& key);
     

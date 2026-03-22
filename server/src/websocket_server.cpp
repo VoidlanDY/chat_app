@@ -611,9 +611,9 @@ void WebSocketServer::heartbeat_loop() {
 
 void WebSocketServer::remove_connection(WsConnection::ptr conn) {
     std::lock_guard<std::mutex> lock(conn_mutex_);
-    
+
     connections_.erase(conn->get_socket());
-    
+
     uint64_t user_id = conn->get_user_id();
     if (user_id > 0) {
         // 只有当连接对象相同时才移除
@@ -621,6 +621,22 @@ void WebSocketServer::remove_connection(WsConnection::ptr conn) {
         if (it != user_connections_.end() && it->second == conn) {
             user_connections_.erase(it);
         }
+    }
+}
+
+void WebSocketServer::add_connection(WsConnection::ptr conn) {
+    std::lock_guard<std::mutex> lock(conn_mutex_);
+
+    uint64_t user_id = conn->get_user_id();
+    if (user_id > 0) {
+        // 如果已存在旧连接，先移除
+        auto it = user_connections_.find(user_id);
+        if (it != user_connections_.end()) {
+            user_connections_.erase(it);
+        }
+        // 添加新连接
+        user_connections_[user_id] = conn;
+        std::cout << "[WsServer] Added connection for user " << user_id << std::endl;
     }
 }
 
