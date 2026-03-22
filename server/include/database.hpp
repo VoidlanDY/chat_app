@@ -37,6 +37,7 @@ public:
                      const std::string& nickname, uint64_t& user_id);
     bool get_user_by_id(uint64_t user_id, UserInfo& user);
     bool get_user_by_username(const std::string& username, UserInfo& user);
+    bool get_user_password_hash(const std::string& username, std::string& password_hash);
     bool verify_user(const std::string& username, const std::string& password, uint64_t& user_id);
     bool update_user(const UserInfo& user);
     bool update_user_password(uint64_t user_id, const std::string& new_password);

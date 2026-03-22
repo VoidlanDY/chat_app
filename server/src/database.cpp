@@ -489,7 +489,39 @@ bool Database::get_user_by_username(const std::string& username, UserInfo& user)
     return true;
 }
 
-bool Database::verify_user(const std::string& username, const std::string& password, 
+bool Database::get_user_password_hash(const std::string& username, std::string& password_hash) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // 检查连接状态
+    if (!ensure_connection()) {
+        std::cerr << "Database connection failed in get_user_password_hash" << std::endl;
+        return false;
+    }
+
+    std::string escaped_username = escape_string(username);
+    std::ostringstream sql;
+    sql << "SELECT password FROM users WHERE username = '" << escaped_username << "'";
+
+    if (mysql_query(connection_, sql.str().c_str()) != 0) {
+        std::cerr << "MySQL query failed in get_user_password_hash: " << mysql_error(connection_) << std::endl;
+        return false;
+    }
+
+    MYSQL_RES* result = mysql_store_result(connection_);
+    if (!result) return false;
+
+    MYSQL_ROW row = mysql_fetch_row(result);
+    if (!row || !row[0]) {
+        mysql_free_result(result);
+        return false;
+    }
+
+    password_hash = row[0];
+    mysql_free_result(result);
+    return true;
+}
+
+bool Database::verify_user(const std::string& username, const std::string& password,
                            uint64_t& user_id) {
     std::lock_guard<std::mutex> lock(mutex_);
     

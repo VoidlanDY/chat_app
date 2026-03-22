@@ -1,19 +1,26 @@
 #include "user_manager.hpp"
+#include <sodium.h>
 #include <openssl/sha.h>
 #include <sstream>
 #include <iomanip>
+#include <cstring>
 
 namespace chat {
 
 UserManager::UserManager(std::shared_ptr<Database> database)
     : database_(database) {
+    // 初始化 libsodium
+    if (sodium_init() < 0) {
+        throw std::runtime_error("Failed to initialize libsodium");
+    }
 }
 
-std::string UserManager::hash_password(const std::string& password) {
+// 旧的 SHA256 哈希函数（仅用于迁移验证）
+static std::string hash_password_sha256(const std::string& password) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256(reinterpret_cast<const unsigned char*>(password.c_str()), 
+    SHA256(reinterpret_cast<const unsigned char*>(password.c_str()),
            password.size(), hash);
-    
+
     std::stringstream ss;
     for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
         ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
@@ -21,8 +28,34 @@ std::string UserManager::hash_password(const std::string& password) {
     return ss.str();
 }
 
+// 检测密码哈希类型
+static bool is_argon2_hash(const std::string& hash) {
+    return hash.size() > 10 && hash.substr(0, 9) == "$argon2id";
+}
+
+std::string UserManager::hash_password(const std::string& password) {
+    char hashed[crypto_pwhash_STRBYTES];
+
+    if (crypto_pwhash_str(
+            hashed,
+            password.c_str(),
+            password.size(),
+            crypto_pwhash_OPSLIMIT_INTERACTIVE,
+            crypto_pwhash_MEMLIMIT_INTERACTIVE) != 0) {
+        throw std::runtime_error("Failed to hash password with Argon2");
+    }
+
+    return std::string(hashed);
+}
+
 bool UserManager::verify_password(const std::string& password, const std::string& hash) {
-    return hash_password(password) == hash;
+    if (is_argon2_hash(hash)) {
+        // 新格式：Argon2
+        return crypto_pwhash_str_verify(hash.c_str(), password.c_str(), password.size()) == 0;
+    } else {
+        // 旧格式：SHA256（用于迁移）
+        return hash_password_sha256(password) == hash;
+    }
 }
 
 bool UserManager::register_user(const std::string& username, const std::string& password,
@@ -54,14 +87,33 @@ bool UserManager::login(const std::string& username, const std::string& password
         error = "User not found";
         return false;
     }
-    
-    // 验证密码
-    std::string hashed_password = hash_password(password);
-    if (!database_->verify_user(username, hashed_password, user_id)) {
+
+    // 获取密码哈希
+    std::string stored_hash;
+    if (!database_->get_user_password_hash(username, stored_hash)) {
+        error = "Failed to retrieve password";
+        return false;
+    }
+
+    // 验证密码（支持旧的 SHA256 和新的 Argon2）
+    if (!verify_password(password, stored_hash)) {
         error = "Invalid password";
         return false;
     }
-    
+
+    user_id = user_info.user_id;
+
+    // 渐进式迁移：如果用户使用旧的 SHA256 密码，自动升级到 Argon2
+    if (!is_argon2_hash(stored_hash)) {
+        try {
+            std::string new_hash = hash_password(password);
+            database_->update_user_password(user_id, new_hash);
+        } catch (const std::exception& e) {
+            // 升级失败不影响登录，只记录错误
+            // 在生产环境中应该记录到日志
+        }
+    }
+
     return true;
 }
 
@@ -80,16 +132,21 @@ bool UserManager::update_password(uint64_t user_id, const std::string& old_passw
         error = "User not found";
         return false;
     }
-    
-    // 验证旧密码
-    std::string hashed_old = hash_password(old_password);
-    uint64_t temp_id;
-    if (!database_->verify_user(user.username, hashed_old, temp_id)) {
+
+    // 获取密码哈希
+    std::string stored_hash;
+    if (!database_->get_user_password_hash(user.username, stored_hash)) {
+        error = "Failed to retrieve password";
+        return false;
+    }
+
+    // 验证旧密码（支持旧的 SHA256 和新的 Argon2）
+    if (!verify_password(old_password, stored_hash)) {
         error = "Invalid old password";
         return false;
     }
-    
-    // 更新密码
+
+    // 更新密码（使用新的 Argon2 格式）
     std::string hashed_new = hash_password(new_password);
     return database_->update_user_password(user_id, hashed_new);
 }

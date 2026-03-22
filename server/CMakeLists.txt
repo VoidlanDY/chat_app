@@ -12,6 +12,10 @@ set(TERMUX_PREFIX "/data/data/com.termux/files/usr")
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
+# libsodium (for Argon2 password hashing)
+find_path(SODIUM_INCLUDE_DIR NAMES sodium.h PATHS /usr/include ${TERMUX_PREFIX}/include)
+find_library(SODIUM_LIBRARY NAMES sodium PATHS /usr/lib/aarch64-linux-gnu /usr/lib ${TERMUX_PREFIX}/lib)
+
 # ASIO (header-only) - 优先使用系统路径
 find_path(ASIO_INCLUDE_DIR NAMES asio.hpp PATHS /usr/include ${TERMUX_PREFIX}/include)
 
@@ -68,6 +72,7 @@ message(STATUS "ASIO include: ${ASIO_INCLUDE_DIR}")
 message(STATUS "CURL include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARY}")
 message(STATUS "MySQL include: ${MYSQL_INCLUDE_DIR}, lib: ${MYSQL_LIBRARY}")
 message(STATUS "MHD include: ${MHD_INCLUDE_DIR}, lib: ${MHD_LIBRARY}")
+message(STATUS "Sodium include: ${SODIUM_INCLUDE_DIR}, lib: ${SODIUM_LIBRARY}")
 
 # 服务器可执行文件
 add_executable(chat_server
@@ -95,6 +100,7 @@ target_include_directories(chat_server PRIVATE
     ${MYSQL_INCLUDE_DIR}
     ${CURL_INCLUDE_DIR}
     ${QJS_INCLUDE_DIR}
+    ${SODIUM_INCLUDE_DIR}
 )
 
 target_link_libraries(chat_server PRIVATE
@@ -106,6 +112,7 @@ target_link_libraries(chat_server PRIVATE
     ${MHD_LIBRARY}
     nlohmann_json::nlohmann_json
     ${QJS_LIBRARY}
+    ${SODIUM_LIBRARY}
     dl
     m
 )
@@ -166,6 +173,7 @@ target_include_directories(gateway_server PRIVATE
     ${CURL_INCLUDE_DIR}
     ${MHD_INCLUDE_DIR}
     ${QJS_INCLUDE_DIR}
+    ${SODIUM_INCLUDE_DIR}
 )
 
 target_link_libraries(gateway_server PRIVATE
@@ -177,6 +185,7 @@ target_link_libraries(gateway_server PRIVATE
     ${MHD_LIBRARY}
     nlohmann_json::nlohmann_json
     ${QJS_LIBRARY}
+    ${SODIUM_LIBRARY}
     dl
     m
 )
